@@ -30,7 +30,7 @@ export function isDistribution(obj: any): obj is Distribution {
   const validations = [
     ['id', typeof obj.id === 'number'],
     ['name', typeof obj.name === 'string'],
-    ['description', typeof obj.description === 'string'],
+    ['description', obj.description === undefined || obj.description === null || typeof obj.description === 'string'],
     ['version', typeof obj.version === 'string'],
     ['type', typeof obj.type === 'string'],
     ['typeName', typeof obj.typeName === 'string'],

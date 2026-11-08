@@ -59,7 +59,7 @@ export function isTarget(obj: any): obj is Target {
     typeof obj.lastModifiedBy === 'string' &&
     typeof obj.lastModifiedAt === 'number' &&
     typeof obj.name === 'string' &&
-    typeof obj.description === 'string' &&
+    (obj.description === undefined || obj.description === null || typeof obj.description === 'string') &&
     typeof obj.controllerId === 'string' &&
     isTargetStatus(obj.updateStatus) &&
     typeof obj.securityToken === 'string' &&
