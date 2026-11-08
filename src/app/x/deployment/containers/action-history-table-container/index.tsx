@@ -17,6 +17,7 @@ export default function ActionHistoryTableContainer() {
   const isLoading = useTargetActionsTableStore((state) => state.isLoading);
   const isExpanded = useTargetActionsTableStore((state) => state.isExpanded);
   const fetchTargetActions = useTargetActionsTableStore((state) => state.fetchActions);
+  const pollTargetActions = useTargetActionsTableStore((state) => state.pollActions);
   const selectedTargetId = useTargetActionsTableStore((state) => state.selectedTargetId);
   const setSelectedAction = useTargetActionsTableStore((state) => state.setSelectedAction);
 
@@ -71,7 +72,11 @@ export default function ActionHistoryTableContainer() {
       return;
     }
     fetchTargetActions(selectedTargetId).catch(console.error);
-  }, [fetchTargetActions, selectedTargetId]);
+    const interval = setInterval(() => {
+      pollTargetActions(selectedTargetId).catch(console.error);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [fetchTargetActions, pollTargetActions, selectedTargetId]);
 
   return (
     <>

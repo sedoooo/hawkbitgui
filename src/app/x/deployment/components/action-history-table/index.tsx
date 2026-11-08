@@ -34,8 +34,9 @@ export default function ActionHistoryTable({
 
   const shortColumns = useMemo(() => {
     return [
-      columnHelper.accessor('detailStatus', {
-        header: 'Detail Status',
+      columnHelper.accessor((row) => row.detailStatus ?? row.status, {
+        id: 'status',
+        header: 'Status',
         cell: (info) => (
           <div className={styles.statusCell}>
             <Chip value={info.getValue()} colorClassName={info.getValue()} />
@@ -55,7 +56,7 @@ export default function ActionHistoryTable({
         header: 'Rollout Name',
         cell: (info) => info.getValue(),
       }),
-      columnHelper.accessor('forceType', {
+      columnHelper.accessor('type', {
         header: 'Type',
         cell: (info) => info.getValue(),
       }),
@@ -82,8 +83,9 @@ export default function ActionHistoryTable({
 
   const fullColumns = useMemo(() => {
     return [
-      columnHelper.accessor('detailStatus', {
-        header: 'Detail Status',
+      columnHelper.accessor((row) => row.detailStatus ?? row.status, {
+        id: 'status',
+        header: 'Status',
         cell: (info) => (
           <div className={styles.statusCell}>
             <Chip value={info.getValue()} colorClassName={info.getValue()} />
@@ -103,21 +105,13 @@ export default function ActionHistoryTable({
         header: 'Rollout Name',
         cell: (info) => info.getValue(),
       }),
-      columnHelper.accessor('forceType', {
+      columnHelper.accessor('type', {
         header: 'Type',
         cell: (info) => info.getValue(),
       }),
       columnHelper.accessor('_links.distributionset.name', {
         header: 'Distribution Set',
         cell: (info) => info.getValue(),
-      }),
-      columnHelper.accessor('status', {
-        header: 'Status',
-        cell: (info) => (
-          <div className={styles.statusCell}>
-            <Chip value={info.getValue()} colorClassName={info.getValue()} />
-          </div>
-        ),
       }),
       columnHelper.accessor('createdAt', {
         header: 'Created Date',

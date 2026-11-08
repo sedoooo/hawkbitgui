@@ -15,6 +15,7 @@ interface TargetActionsTableState {
   setIsExpanded: (isExpanded: boolean) => void;
   setIsLoading: (isLoading: boolean) => void;
   fetchActions: (controllerId: string) => Promise<void>;
+  pollActions: (controllerId: string) => Promise<void>;
   setSelectedTargetId: (targetId: string) => void;
 }
 
@@ -40,6 +41,14 @@ export const useTargetActionsTableStore = create<TargetActionsTableState>((set) 
       console.error('Failed to fetch target actions', error);
     } finally {
       set({ isLoading: false });
+    }
+  },
+  pollActions: async (controllerId: string) => {
+    try {
+      const targetActions = await TargetsService.fetchActions(controllerId);
+      set({ actions: targetActions });
+    } catch (error) {
+      console.error('Failed to poll target actions', error);
     }
   },
 }));
