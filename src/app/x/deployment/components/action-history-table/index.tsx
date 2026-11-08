@@ -9,6 +9,7 @@ import dayjs from 'dayjs';
 import { TargetAction } from '@/entities/target-action';
 import XIcon from '@/app/components/icons/x-icon';
 import ThunderCloudIcon from '@/app/components/icons/thunder-cloud-icon';
+import CircleCheckMarkIcon from '@/app/components/icons/circle-check-mark-icon';
 import { Chip } from '@/app/components/chip';
 
 export type ActionHistoryTableProps = {
@@ -18,6 +19,7 @@ export type ActionHistoryTableProps = {
   targetActions?: TargetAction[];
   onCancelClick?: (targetAction: TargetAction) => void;
   onForceClick?: (targetAction: TargetAction) => void;
+  onConfirmClick?: (targetAction: TargetAction) => void;
   onActionIdClick?: (targetAction: TargetAction) => void;
 };
 
@@ -26,6 +28,7 @@ export default function ActionHistoryTable({
   onRowClick,
   targetActions = [],
   onForceClick,
+  onConfirmClick,
   onCancelClick,
   isLoading,
   onActionIdClick,
@@ -69,6 +72,11 @@ export default function ActionHistoryTable({
         header: 'Actions',
         cell: (info) => (
           <div className={styles.actionButtons}>
+            {info.row.original.status === 'wait_for_confirmation' && (
+              <IconButton height={'30px'} width={'30px'} title='Confirm action' onClick={() => onConfirmClick?.(info.row.original)}>
+                <CircleCheckMarkIcon width={20} height={20} />
+              </IconButton>
+            )}
             <IconButton height={'30px'} width={'30px'} onClick={() => onForceClick?.(info.row.original)}>
               <ThunderCloudIcon />
             </IconButton>
@@ -79,7 +87,7 @@ export default function ActionHistoryTable({
         ),
       }),
     ];
-  }, [columnHelper, onActionIdClick, onCancelClick, onForceClick]);
+  }, [columnHelper, onActionIdClick, onCancelClick, onForceClick, onConfirmClick]);
 
   const fullColumns = useMemo(() => {
     return [
@@ -134,6 +142,11 @@ export default function ActionHistoryTable({
         header: 'Actions',
         cell: (info) => (
           <div className={styles.actionButtons}>
+            {info.row.original.status === 'wait_for_confirmation' && (
+              <IconButton height={'30px'} width={'30px'} title='Confirm action' onClick={() => onConfirmClick?.(info.row.original)}>
+                <CircleCheckMarkIcon width={20} height={20} />
+              </IconButton>
+            )}
             <IconButton height={'30px'} width={'30px'} onClick={() => onForceClick?.(info.row.original)}>
               <ThunderCloudIcon />
             </IconButton>
@@ -144,7 +157,7 @@ export default function ActionHistoryTable({
         ),
       }),
     ];
-  }, [columnHelper, onActionIdClick, onCancelClick, onForceClick]);
+  }, [columnHelper, onActionIdClick, onCancelClick, onForceClick, onConfirmClick]);
 
   return (
     <>

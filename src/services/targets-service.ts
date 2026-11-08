@@ -188,6 +188,17 @@ export class TargetsService {
     }
   }
 
+  static async confirmAction(controllerId: string | number, actionId: string | number): Promise<void> {
+    try {
+      await axiosInstance.put(`/targets/${controllerId}/actions/${actionId}/confirmation`, {
+        confirmation: 'confirmed',
+      });
+    } catch (error) {
+      console.error(`Failed to confirm action ${actionId} for target ${controllerId}`, error);
+      throw error;
+    }
+  }
+
   static async targetForceAction(controllerId: string | number, actionId: string | number): Promise<GetActionLogOutput> {
     try {
       const response = await axiosInstance.put<GetActionLogResponse>(`/targets/${controllerId}/actions/${actionId}`, {

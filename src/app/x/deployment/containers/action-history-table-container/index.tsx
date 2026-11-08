@@ -26,6 +26,7 @@ export default function ActionHistoryTableContainer() {
   const [isCancelling, setIsCancelling] = useState(false);
   const confirmCancelDialog = useConfirmDialog<TargetAction>();
   const confirmForceDialog = useConfirmDialog<TargetAction>();
+  const confirmActionDialog = useConfirmDialog<TargetAction>();
 
   const handleActionIdClick = (targetAction: TargetAction) => {
     if (!selectedTargetId) {
@@ -45,6 +46,21 @@ export default function ActionHistoryTableContainer() {
         fetchTargetActions(selectedTargetId);
       } catch (e) {
         handleErrorWithToast(e, 'Failed to cancel action');
+      } finally {
+        setIsCancelling(false);
+      }
+    });
+  };
+
+  const handleConfirmClick = (targetAction: TargetAction) => {
+    confirmActionDialog.open(targetAction, async () => {
+      if (!selectedTargetId) return;
+      setIsCancelling(true);
+      try {
+        await TargetsService.confirmAction(selectedTargetId, targetAction.id);
+        fetchTargetActions(selectedTargetId);
+      } catch (e) {
+        handleErrorWithToast(e, 'Failed to confirm action');
       } finally {
         setIsCancelling(false);
       }
@@ -87,6 +103,7 @@ export default function ActionHistoryTableContainer() {
         onActionIdClick={handleActionIdClick}
         onCancelClick={handleCancelClick}
         onForceClick={handleForceClick}
+        onConfirmClick={handleConfirmClick}
       />
       <Modal isOpen={isOpen} variant='unstyled' size='lg' onClose={close}>
         <ActionInfo />
@@ -101,6 +118,17 @@ export default function ActionHistoryTableContainer() {
         size='sm'
       >
         <p>Are you sure you want to cancel this action?</p>
+      </ConfirmationModal>
+      <ConfirmationModal
+        isOpen={confirmActionDialog.isOpen}
+        onClose={confirmActionDialog.close}
+        onConfirm={confirmActionDialog.confirm}
+        title='Confirm Action'
+        confirmButtonText={isCancelling ? 'Confirming...' : 'Yes, Confirm'}
+        cancelButtonText='No'
+        size='sm'
+      >
+        <p>Are you sure you want to confirm this action and start the deployment?</p>
       </ConfirmationModal>
       <ConfirmationModal
         isOpen={confirmForceDialog.isOpen}
