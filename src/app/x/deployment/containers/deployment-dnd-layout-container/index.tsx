@@ -15,7 +15,6 @@ import { useConfirmDialog } from '@/app/hooks';
 import ScheduleForm, { FormData as ScheduleFormData } from '@/app/x/deployment/components/schedule-form';
 import { AssignConfig } from '@/services/targets-service.types';
 import ActionHistoryCardContainer from '@/app/x/deployment/containers/action-history-card-container';
-import { useTargetsTableStore } from '@/stores/targets-table-store';
 import { useTargetActionsTableStore } from '@/stores/target-action-table-store';
 import { ExpandableCardProvider } from '@/app/components/card/expandable-card-context';
 
@@ -61,13 +60,12 @@ export default function DeploymentDndLayoutContainer() {
 
   const scheduleFormData = useRef<ScheduleFormData | undefined>(undefined);
   const fetchActions = useTargetActionsTableStore((state) => state.fetchActions);
+  const setSelectedTargetId = useTargetActionsTableStore((state) => state.setSelectedTargetId);
 
   const [isDragging, setIsDragging] = useState(false);
   const [isDraggingDistribution, setIsDraggingDistribution] = useState(false);
   const draggedTargets = useRef<Target[]>([]);
   const draggedDistributions = useRef<Distribution[]>([]);
-
-  const selectedTarget = useTargetsTableStore((state) => state.selectedTarget);
 
   function handleDragStart(event: DragStartEvent) {
     const draggedData = event.active.data.current?.dragData;
@@ -133,10 +131,8 @@ export default function DeploymentDndLayoutContainer() {
         controllerId: target.controllerId,
         distributionsConfigs: configs,
       });
-      if (!selectedTarget) {
-        return;
-      }
-      fetchActions(selectedTarget.controllerId);
+      setSelectedTargetId(target.controllerId);
+      fetchActions(target.controllerId);
     } catch (error) {
       handleErrorWithToast(error, 'Failed to assign distribution to target');
     }
@@ -150,10 +146,11 @@ export default function DeploymentDndLayoutContainer() {
         distributionId: distribution.id,
         targetConfigs: configs,
       });
-      if (!selectedTarget) {
-        return;
+      const firstTarget = targets[0];
+      if (firstTarget) {
+        setSelectedTargetId(firstTarget.controllerId);
+        fetchActions(firstTarget.controllerId);
       }
-      fetchActions(selectedTarget.controllerId);
     } catch (error) {
       handleErrorWithToast(error, 'Failed to assign target to Distribution Set');
     }
