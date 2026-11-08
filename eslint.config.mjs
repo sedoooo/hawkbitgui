@@ -7,7 +7,7 @@ const eslintConfig = defineConfig([
   ...nextCoreWebVitals,
   ...nextTypescript,
   prettier,
-  globalIgnores(['.next/**']),
+  globalIgnores(['.next/**', 'tests/**']),
   {
     rules: {
       '@typescript-eslint/no-explicit-any': 'off',

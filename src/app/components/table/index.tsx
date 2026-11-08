@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { useReactTable, getCoreRowModel, ColumnDef, flexRender, VisibilityState } from '@tanstack/react-table';
+import { useReactTable, getCoreRowModel, getSortedRowModel, ColumnDef, flexRender, VisibilityState, SortingFn } from '@tanstack/react-table';
 import Skeleton from 'react-loading-skeleton';
 import styles from './styles.module.scss';
 import DraggableDroppableRow from '@/app/components/draggable-droppable-row';
@@ -9,6 +9,8 @@ import { isEqual } from 'lodash-es';
 import { isDefined } from '@/utils/is-defined';
 import type { Pagination } from '@/types/utils/pagination';
 import PageNavigation from '../pagination';
+import { useTableSorting } from '@/app/hooks/use-table-sorting';
+import { getSortDirection, typeAwareSortingFn } from '@/utils/table-sort';
 
 export type TableProps<T> = {
   data: T[];
@@ -41,19 +43,29 @@ export default function Table<T>({
   const [selectedRows, setSelectedRows] = useState<Record<string, T>>({});
   const [columnSizing, setColumnSizing] = useState({});
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
+  const { sorting, setSorting, toggleSort } = useTableSorting();
 
-  const table = useReactTable({
+  const table = useReactTable<T>({
     data,
     columns,
     columnResizeMode: 'onChange',
     enableColumnResizing: true,
+    enableSorting: true,
+    enableSortingRemoval: true,
+    sortDescFirst: false,
+    defaultColumn: {
+      sortingFn: typeAwareSortingFn as SortingFn<T>,
+    },
     getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
     state: {
       columnSizing,
       columnVisibility,
+      sorting,
     },
     onColumnSizingChange: setColumnSizing,
     onColumnVisibilityChange: setColumnVisibility,
+    onSortingChange: setSorting,
   });
 
   useEffect(() => {
@@ -93,31 +105,46 @@ export default function Table<T>({
           <div className={styles.thead}>
             {table.getHeaderGroups().map((headerGroup) => (
               <div className={styles.tr} key={headerGroup.id}>
-                {headerGroup.headers.map((header) => (
-                  <div
-                    className={styles.th}
-                    key={header.id}
-                    style={{
-                      width: header.getSize(),
-                      minWidth: header.column.columnDef.minSize,
-                      maxWidth: header.column.columnDef.maxSize,
-                    }}
-                  >
-                    {header.isPlaceholder ? null : (
-                      <>
-                        {flexRender(header.column.columnDef.header, header.getContext())}
-                        {header.column.getCanResize() && (
-                          <div
-                            onMouseDown={header.getResizeHandler()}
-                            onTouchStart={header.getResizeHandler()}
-                            className={styles.resizer}
-                            style={{ cursor: 'col-resize' }}
-                          />
-                        )}
-                      </>
-                    )}
-                  </div>
-                ))}
+                {headerGroup.headers.map((header) => {
+                  const sortDirection = getSortDirection(sorting, header.column.id);
+                  const canSort = header.column.getCanSort();
+
+                  return (
+                    <div
+                      className={styles.th}
+                      key={header.id}
+                      style={{
+                        width: header.getSize(),
+                        minWidth: header.column.columnDef.minSize,
+                        maxWidth: header.column.columnDef.maxSize,
+                      }}
+                      aria-sort={sortDirection === 'asc' ? 'ascending' : sortDirection === 'desc' ? 'descending' : undefined}
+                    >
+                      {header.isPlaceholder ? null : (
+                        <>
+                          {canSort ? (
+                            <button type='button' className={styles.sortButton} onClick={() => toggleSort(header.column.id)}>
+                              <span className={styles.sortLabel}>{flexRender(header.column.columnDef.header, header.getContext())}</span>
+                              <span className={`${styles.sortIndicator} ${sortDirection ? styles.sortIndicatorActive : ''}`} aria-hidden='true'>
+                                {sortDirection === 'asc' ? '▲' : sortDirection === 'desc' ? '▼' : '↕'}
+                              </span>
+                            </button>
+                          ) : (
+                            flexRender(header.column.columnDef.header, header.getContext())
+                          )}
+                          {header.column.getCanResize() && (
+                            <div
+                              onMouseDown={header.getResizeHandler()}
+                              onTouchStart={header.getResizeHandler()}
+                              className={styles.resizer}
+                              style={{ cursor: 'col-resize' }}
+                            />
+                          )}
+                        </>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             ))}
           </div>

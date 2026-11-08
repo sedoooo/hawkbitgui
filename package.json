@@ -12,7 +12,8 @@
         "start": "next start",
         "lint": "eslint .",
         "format": "prettier --write .",
-        "format:check": "prettier --check ."
+        "format:check": "prettier --check .",
+        "test": "bun test"
     },
     "dependencies": {
         "@dnd-kit/core": "^6.3.1",
