@@ -10,6 +10,22 @@
   display: flex;
   width: 100%;
   overflow-x: auto;
+  scrollbar-gutter: stable;
+  padding-bottom: 4px;
+
+  &::-webkit-scrollbar {
+    height: 10px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background-color: rgba(86, 37, 99, 0.35);
+    border-radius: 999px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background-color: $background-disabled-color;
+    border-radius: 999px;
+  }
 }
 
 .table {
@@ -22,14 +38,15 @@
 .tbody {
   display: flex;
   flex-direction: column;
-  width: 100%;
-  min-width: fit-content;
+  width: max-content;
+  min-width: 100%;
 }
 
 .tr {
   display: flex;
   align-items: center;
   width: 100%;
+  min-width: max-content;
 }
 
 .th,

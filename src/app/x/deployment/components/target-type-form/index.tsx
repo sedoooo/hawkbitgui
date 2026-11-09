@@ -4,15 +4,19 @@ import styles from './styles.module.scss';
 import Input from '@/app/components/input';
 import TextArea from '@/app/components/text-area';
 import { ActionButtons } from '@/app/components/action-buttons';
-import { useForm } from 'react-hook-form';
-import { useEffect, useState } from 'react';
+import { Controller, useForm } from 'react-hook-form';
+import { useEffect } from 'react';
 import { ChromePicker } from 'react-color';
 import Text from '@/app/components/text';
+import MultipleSelect from '@/app/components/multiple-select';
+import type { DistributionSetType } from '@/entities/distribution-set-type';
 
 export interface FormData {
   name: string;
+  key: string;
   description: string;
   color?: string;
+  compatibleDistributionSetTypes?: DistributionSetType[];
 }
 
 export interface TargetTypeFormProps {
@@ -20,27 +24,41 @@ export interface TargetTypeFormProps {
   onCancel?: () => void;
   defaultValues?: Partial<FormData>;
   mode?: 'create' | 'edit';
+  distributionSetTypes?: DistributionSetType[];
+  distributionSetTypesLoading?: boolean;
 }
 
-export default function TargetTypeForm({ onSubmit, onCancel, defaultValues, mode = 'create' }: TargetTypeFormProps) {
+export default function TargetTypeForm({
+  onSubmit,
+  onCancel,
+  defaultValues,
+  mode = 'create',
+  distributionSetTypes,
+  distributionSetTypesLoading,
+}: TargetTypeFormProps) {
   const {
     register,
     handleSubmit,
     formState: { errors },
     reset,
     setValue,
+    control,
+    watch,
   } = useForm<FormData>({
-    defaultValues,
+    defaultValues: {
+      compatibleDistributionSetTypes: [],
+      color: '#FFFFFF',
+      ...defaultValues,
+    },
   });
 
-  const [color, setColor] = useState<string>('#FFFFFF');
+  const color = watch('color') || '#FFFFFF';
 
   const isEditing = mode === 'edit';
 
   useEffect(() => {
     if (defaultValues) {
-      reset(defaultValues);
-      if (defaultValues.color) setColor(defaultValues.color);
+      reset({ compatibleDistributionSetTypes: [], color: '#FFFFFF', ...defaultValues });
     }
   }, [defaultValues, reset]);
 
@@ -63,9 +81,40 @@ export default function TargetTypeForm({ onSubmit, onCancel, defaultValues, mode
           </div>
 
           <div className={styles.inputContainer}>
+            <label className={styles.label}>
+              Key <b className={styles.error}>*</b>
+            </label>
+            <Input
+              className={styles.input}
+              type='text'
+              placeholder='Enter the unique type key (e.g. gw-stm32mp1)'
+              {...register('key', { required: !isEditing })}
+              error={errors.key && 'This field is required'}
+              disabled={isEditing}
+            />
+            {isEditing && <span className={styles.hint}>The key cannot be changed after the target type has been created.</span>}
+          </div>
+
+          <div className={styles.inputContainer}>
             <label className={styles.label}>Description</label>
             <TextArea placeholder='Add additional details' {...register('description')} className={styles.textarea} />
           </div>
+
+          <Controller
+            name='compatibleDistributionSetTypes'
+            control={control}
+            render={({ field }) => (
+              <div className={styles.inputContainer}>
+                <label className={styles.label}>Compatible distribution set types</label>
+                <MultipleSelect
+                  options={distributionSetTypes ?? []}
+                  selectedOptions={field.value ?? []}
+                  onChange={field.onChange}
+                  isLoading={distributionSetTypesLoading}
+                />
+              </div>
+            )}
+          />
 
           <div className={styles.inputContainer}>
             <label className={styles.label}>Color</label>
@@ -74,7 +123,6 @@ export default function TargetTypeForm({ onSubmit, onCancel, defaultValues, mode
               className={styles.colorPicker}
               color={color}
               onChange={(color) => {
-                setColor(color.hex);
                 setValue('color', color.hex);
               }}
             />

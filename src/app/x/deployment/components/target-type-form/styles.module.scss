@@ -32,6 +32,12 @@
     color: $light-primary-text-color;
   }
 
+  .hint {
+    font-size: 13px;
+    color: $secondary-text-color;
+    margin-top: -8px;
+  }
+
   .textarea {
     width: 100%;
     min-height: 80px;

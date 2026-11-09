@@ -91,6 +91,10 @@ body {
   background-color: $status-cancel-rejected;
 }
 
+.wait_for_confirmation {
+  background-color: $status-pending;
+}
+
 input {
   border: 1px solid $border-disabled-color;
   transition: border-color 0.2s ease;

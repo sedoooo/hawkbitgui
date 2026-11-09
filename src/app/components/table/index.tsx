@@ -23,6 +23,8 @@ export type TableProps<T> = {
   pagination?: Pagination;
   onRowClick?: (rowId: string, data: T, event: React.MouseEvent) => void;
   onRowSelect?: (rowId: string, data: T) => void;
+  onSelectionChange?: (selected: T[]) => void;
+  selectionResetKey?: string | number;
   onPageChange?: (page: number) => void;
   sorting?: SortingState;
   onSortingChange?: (sorting: SortingState) => void;
@@ -40,6 +42,8 @@ export default function Table<T>({
   pagination,
   onRowClick,
   onRowSelect,
+  onSelectionChange,
+  selectionResetKey,
   onPageChange,
   sorting: controlledSorting,
   onSortingChange,
@@ -86,24 +90,30 @@ export default function Table<T>({
 
   const tableClassName = variant === 'unstyled' ? styles.unstyledTable : styles.defaultTable;
 
+  useEffect(() => {
+    if (selectionResetKey === undefined) {
+      return;
+    }
+    setSelectedRows({});
+  }, [selectionResetKey]);
+
   const handleRowClick = (rowId: string, data: T, event: React.MouseEvent) => {
     let updated: Record<string, T>;
 
-    setSelectedRows((prev) => {
-      if (selectable && (event.ctrlKey || event.metaKey)) {
-        if (prev[rowId] !== undefined) {
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          const { [rowId]: _, ...rest } = prev;
-          updated = rest;
-        } else {
-          updated = { ...prev, [rowId]: data };
-        }
+    if (selectable && (event.ctrlKey || event.metaKey)) {
+      if (selectedRows[rowId] !== undefined) {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { [rowId]: _, ...rest } = selectedRows;
+        updated = rest;
       } else {
-        updated = { [rowId]: data };
+        updated = { ...selectedRows, [rowId]: data };
       }
-      return updated;
-    });
+    } else {
+      updated = { [rowId]: data };
+    }
 
+    setSelectedRows(updated);
+    onSelectionChange?.(Object.values(updated));
     onRowClick?.(rowId, data, event);
     onRowSelect?.(rowId, data);
   };

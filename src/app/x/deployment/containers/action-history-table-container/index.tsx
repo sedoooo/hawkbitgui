@@ -13,6 +13,9 @@ import { TargetsService } from '@/services/targets-service';
 import { handleErrorWithToast } from '@/utils/handle-error-with-toast';
 import ListFilterBar from '@/app/components/list-filter-bar';
 import { EMPTY_LIST_FILTERS, filterRowsByListFilters, getDistinctTypeOptions, type ListFilterState } from '@/utils/list-filters';
+import Button from '@/app/components/button';
+import { toast } from 'react-hot-toast';
+import { isErrorWithMessage } from '@/utils/is-error-with-message';
 
 export default function ActionHistoryTableContainer() {
   const targetActions = useTargetActionsTableStore((state) => state.actions);
@@ -54,9 +57,22 @@ export default function ActionHistoryTableContainer() {
   );
 
   const [isCancelling, setIsCancelling] = useState(false);
+  const [isConfirming, setIsConfirming] = useState(false);
+  const [isBulkConfirming, setIsBulkConfirming] = useState(false);
+  const [isForcing, setIsForcing] = useState(false);
+  const [selectedActions, setSelectedActions] = useState<TargetAction[]>([]);
+  const [selectionResetKey, setSelectionResetKey] = useState(0);
   const confirmCancelDialog = useConfirmDialog<TargetAction>();
   const confirmForceDialog = useConfirmDialog<TargetAction>();
   const confirmActionDialog = useConfirmDialog<TargetAction>();
+  const confirmBulkDialog = useConfirmDialog<TargetAction[]>();
+
+  const confirmableSelectedActions = useMemo(() => selectedActions.filter((action) => action.status === 'wait_for_confirmation'), [selectedActions]);
+
+  const clearSelection = () => {
+    setSelectedActions([]);
+    setSelectionResetKey((key) => key + 1);
+  };
 
   const handleActionIdClick = (targetAction: TargetAction) => {
     if (!selectedTargetId) {
@@ -73,7 +89,9 @@ export default function ActionHistoryTableContainer() {
       setIsCancelling(true);
       try {
         await TargetsService.cancelAction(selectedTargetId, targetAction.id);
-        fetchTargetActions(selectedTargetId);
+        await fetchTargetActions(selectedTargetId);
+        clearSelection();
+        toast.success('Action cancelled');
       } catch (e) {
         handleErrorWithToast(e, 'Failed to cancel action');
       } finally {
@@ -85,14 +103,49 @@ export default function ActionHistoryTableContainer() {
   const handleConfirmClick = (targetAction: TargetAction) => {
     confirmActionDialog.open(targetAction, async () => {
       if (!selectedTargetId) return;
-      setIsCancelling(true);
+      setIsConfirming(true);
       try {
         await TargetsService.confirmAction(selectedTargetId, targetAction.id);
-        fetchTargetActions(selectedTargetId);
+        await fetchTargetActions(selectedTargetId);
+        clearSelection();
+        toast.success('Action confirmed');
       } catch (e) {
-        handleErrorWithToast(e, 'Failed to confirm action');
+        handleErrorWithToast(e, 'Failed to confirm action (it may no longer be waiting for confirmation)');
       } finally {
-        setIsCancelling(false);
+        setIsConfirming(false);
+      }
+    });
+  };
+
+  const handleBulkConfirmClick = () => {
+    if (confirmableSelectedActions.length === 0) {
+      toast.error('Select at least one action that is waiting for confirmation');
+      return;
+    }
+
+    confirmBulkDialog.open(confirmableSelectedActions, async () => {
+      if (!selectedTargetId) return;
+      setIsBulkConfirming(true);
+      try {
+        const results = await Promise.allSettled(
+          confirmableSelectedActions.map((targetAction) => TargetsService.confirmAction(selectedTargetId, targetAction.id))
+        );
+        const failed = results.filter((result): result is PromiseRejectedResult => result.status === 'rejected');
+        const succeeded = results.length - failed.length;
+
+        if (failed.length === 0) {
+          toast.success(`Confirmed ${succeeded} action(s)`);
+        } else {
+          const reason = isErrorWithMessage(failed[0].reason) ? ` ${failed[0].reason.message}` : '';
+          toast.error(`Confirmed ${succeeded} of ${results.length} action(s); ${failed.length} failed.${reason}`);
+        }
+
+        await fetchTargetActions(selectedTargetId);
+        clearSelection();
+      } catch (e) {
+        handleErrorWithToast(e, 'Failed to confirm selected actions');
+      } finally {
+        setIsBulkConfirming(false);
       }
     });
   };
@@ -100,14 +153,16 @@ export default function ActionHistoryTableContainer() {
   const handleForceClick = (targetAction: TargetAction) => {
     confirmForceDialog.open(targetAction, async () => {
       if (!selectedTargetId) return;
-      setIsCancelling(true);
+      setIsForcing(true);
       try {
         await TargetsService.targetForceAction(selectedTargetId, targetAction.id);
-        fetchTargetActions(selectedTargetId);
+        await fetchTargetActions(selectedTargetId);
+        clearSelection();
+        toast.success('Action forced');
       } catch (e) {
         handleErrorWithToast(e, 'Failed to force action');
       } finally {
-        setIsCancelling(false);
+        setIsForcing(false);
       }
     });
   };
@@ -135,6 +190,16 @@ export default function ActionHistoryTableContainer() {
           onReset={() => setListFilters({ ...EMPTY_LIST_FILTERS })}
           testIdPrefix='action-history-filter'
         />
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
+          <span style={{ fontSize: '13px', color: '#707070' }}>
+            {selectedActions.length > 0
+              ? `${selectedActions.length} selected${confirmableSelectedActions.length > 0 ? ` (${confirmableSelectedActions.length} awaiting confirmation)` : ''}`
+              : 'Select rows with Ctrl/Cmd + click to confirm in bulk'}
+          </span>
+          <Button variant='outline' disabled={confirmableSelectedActions.length === 0} onClick={handleBulkConfirmClick}>
+            Confirm selected{confirmableSelectedActions.length > 0 ? ` (${confirmableSelectedActions.length})` : ''}
+          </Button>
+        </div>
         <ActionHistoryTable
           targetActions={filteredTargetActions}
           visibleColumns={visibleColumns}
@@ -143,6 +208,8 @@ export default function ActionHistoryTableContainer() {
           onCancelClick={handleCancelClick}
           onForceClick={handleForceClick}
           onConfirmClick={handleConfirmClick}
+          onSelectionChange={setSelectedActions}
+          selectionResetKey={selectionResetKey}
         />
       </div>
       <Modal isOpen={isOpen} variant='unstyled' size='lg' onClose={close}>
@@ -164,18 +231,29 @@ export default function ActionHistoryTableContainer() {
         onClose={confirmActionDialog.close}
         onConfirm={confirmActionDialog.confirm}
         title='Confirm Action'
-        confirmButtonText={isCancelling ? 'Confirming...' : 'Yes, Confirm'}
+        confirmButtonText={isConfirming ? 'Confirming...' : 'Yes, Confirm'}
         cancelButtonText='No'
         size='sm'
       >
         <p>Are you sure you want to confirm this action and start the deployment?</p>
       </ConfirmationModal>
       <ConfirmationModal
+        isOpen={confirmBulkDialog.isOpen}
+        onClose={confirmBulkDialog.close}
+        onConfirm={confirmBulkDialog.confirm}
+        title='Confirm Selected Actions'
+        confirmButtonText={isBulkConfirming ? 'Confirming...' : 'Yes, Confirm all'}
+        cancelButtonText='No'
+        size='sm'
+      >
+        <p>Are you sure you want to confirm {confirmableSelectedActions.length} selected action(s) and start the deployment?</p>
+      </ConfirmationModal>
+      <ConfirmationModal
         isOpen={confirmForceDialog.isOpen}
         onClose={confirmForceDialog.close}
         onConfirm={confirmForceDialog.confirm}
         title='Force Action'
-        confirmButtonText={isCancelling ? 'Forcing...' : 'Yes'}
+        confirmButtonText={isForcing ? 'Forcing...' : 'Yes'}
         cancelButtonText='No'
         size='sm'
       >

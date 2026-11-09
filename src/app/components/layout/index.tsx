@@ -12,6 +12,7 @@ import { usePathname } from 'next/navigation';
 import ClickIcon from '@/app/components/icons/click-icon';
 import WebIcon from '@/app/components/icons/web-icon';
 import GearIcon from '@/app/components/icons/gear-icon';
+import CircleDotIcon from '@/app/components/icons/circle-dot-icon';
 import { signOut, useSession } from 'next-auth/react';
 import { AppRoutes } from '@/utils/routes';
 import RequestStatusWindow from '../request-status-window';
@@ -27,6 +28,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     { href: '/x/rollout', label: 'Rollout', icon: RolloutIcon },
     { href: '/x/target-filters', label: 'Target filters', icon: ClickIcon },
     { href: '/x/distributions', label: 'Distributions', icon: WebIcon },
+    { href: '/x/target-types', label: 'Target types', icon: CircleDotIcon },
     { href: '/x/upload', label: 'Upload', icon: UploadIcon },
     { href: '/x/configuration', label: 'Configuration', icon: GearIcon },
   ];

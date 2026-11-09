@@ -17,6 +17,11 @@ import { AssignConfig, AssignmentAction } from '@/services/targets-service.types
 import ActionHistoryCardContainer from '@/app/x/deployment/containers/action-history-card-container';
 import { useTargetActionsTableStore } from '@/stores/target-action-table-store';
 import { ExpandableCardProvider } from '@/app/components/card/expandable-card-context';
+import { buildAssignmentFeedback } from '@/utils/assignment-feedback';
+import { toast } from 'react-hot-toast';
+import { Modal } from '@/app/components/modal';
+import { ActionButtons } from '@/app/components/action-buttons';
+import { findTwinDistributionSet } from '@/utils/twin-distribution-set';
 
 const mapScheduleFormDataToAssignConfig = (id: string | number, data?: ScheduleFormData): AssignConfig => {
   if (!data) {
@@ -73,6 +78,13 @@ const confirmPendingAssignmentActions = async (actions: AssignmentAction[], fall
   }
 };
 
+type ForceReinstallState = {
+  targetIds: string[];
+  targetLabel: string;
+  twins: { source: Distribution; twin: Distribution }[];
+  missing: Distribution[];
+};
+
 export default function DeploymentDndLayoutContainer() {
   const mouseSensor = useSensor(MouseSensor, {
     activationConstraint: {
@@ -96,6 +108,8 @@ export default function DeploymentDndLayoutContainer() {
 
   const [isDragging, setIsDragging] = useState(false);
   const [isDraggingDistribution, setIsDraggingDistribution] = useState(false);
+  const [forceReinstallState, setForceReinstallState] = useState<ForceReinstallState | null>(null);
+  const [isForceReinstalling, setIsForceReinstalling] = useState(false);
   const draggedTargets = useRef<Target[]>([]);
   const draggedDistributions = useRef<Distribution[]>([]);
 
@@ -168,6 +182,15 @@ export default function DeploymentDndLayoutContainer() {
         pendingActions,
         pendingActions.map(() => target.controllerId)
       );
+      const feedback = buildAssignmentFeedback(createdActions, distributions.map((item) => item.name).join(', '), `target ${target.name}`);
+      if (feedback.tone === 'success') {
+        toast.success(feedback.message);
+      } else {
+        toast(feedback.message);
+        if ((createdActions.assigned ?? 0) === 0 && (createdActions.alreadyAssigned ?? 0) > 0) {
+          await offerForceReinstall(distributions, [target.controllerId], `target ${target.name}`);
+        }
+      }
       setSelectedTargetId(target.controllerId);
       fetchActions(target.controllerId);
     } catch (error) {
@@ -188,6 +211,19 @@ export default function DeploymentDndLayoutContainer() {
         pendingActions,
         pendingActions.map((_, index) => targets[index]?.controllerId)
       );
+      const feedback = buildAssignmentFeedback(createdActions, distribution.name, targets.length === 1 ? `target ${targets[0]?.name}` : undefined);
+      if (feedback.tone === 'success') {
+        toast.success(feedback.message);
+      } else {
+        toast(feedback.message);
+        if ((createdActions.assigned ?? 0) === 0 && (createdActions.alreadyAssigned ?? 0) > 0) {
+          await offerForceReinstall(
+            [distribution],
+            targets.map((target) => target.controllerId),
+            targets.length === 1 ? `target ${targets[0]?.name}` : `${targets.length} targets`
+          );
+        }
+      }
       const firstTarget = targets[0];
       if (firstTarget) {
         setSelectedTargetId(firstTarget.controllerId);
@@ -195,6 +231,75 @@ export default function DeploymentDndLayoutContainer() {
       }
     } catch (error) {
       handleErrorWithToast(error, 'Failed to assign target to Distribution Set');
+    }
+  }
+
+  async function offerForceReinstall(distributions: Distribution[], targetIds: string[], targetLabel: string) {
+    try {
+      const { distributionSets } = await DistributionSetsService.fetchDistributionSets(undefined, { offset: 0, limit: 1000 });
+      const resolvedDistributions = distributions.map((distribution) => distributionSets.find((candidate) => candidate.id === distribution.id) ?? distribution);
+      const twins: { source: Distribution; twin: Distribution }[] = [];
+      const missing: Distribution[] = [];
+
+      resolvedDistributions.forEach((distribution) => {
+        const twin = findTwinDistributionSet(distribution, distributionSets);
+        if (twin) {
+          twins.push({ source: distribution, twin });
+        } else {
+          missing.push(distribution);
+        }
+      });
+
+      setForceReinstallState({ targetIds, targetLabel, twins, missing });
+    } catch (error) {
+      handleErrorWithToast(error, 'Failed to look up a byte-identical twin distribution set');
+    }
+  }
+
+  async function handleForceReinstall() {
+    if (!forceReinstallState || forceReinstallState.twins.length === 0 || forceReinstallState.missing.length > 0) {
+      return;
+    }
+
+    setIsForceReinstalling(true);
+    try {
+      const assignedActions: AssignmentAction[] = [];
+
+      for (const { twin } of forceReinstallState.twins) {
+        const result = await DistributionSetsService.assignTargetsToDistributionSet({
+          distributionId: twin.id,
+          targetConfigs: forceReinstallState.targetIds.map((targetId) => ({ id: targetId, type: 'forced', confirmationRequired: false })),
+        });
+        assignedActions.push(...(result.assignedActions ?? []));
+      }
+
+      await confirmPendingAssignmentActions(
+        assignedActions,
+        assignedActions.map(() => forceReinstallState.targetIds[0])
+      );
+
+      const firstTargetId = forceReinstallState.targetIds[0];
+      let actionSummary = 'no actions reported';
+
+      if (firstTargetId && assignedActions.length > 0) {
+        await new Promise((resolve) => setTimeout(resolve, 800));
+        const refreshedActions = await TargetsService.fetchActions(firstTargetId);
+        const actionById = new Map(refreshedActions.map((action) => [action.id, action]));
+        actionSummary = assignedActions.map((action) => `#${action.id} ${actionById.get(action.id)?.status ?? action.status ?? 'pending'}`).join(', ');
+      }
+
+      const twinSummary = forceReinstallState.twins.map(({ twin }) => `${twin.name} (id ${twin.id})`).join(', ');
+      toast.success(`Forced reinstall started with twin ${twinSummary}. Actions: ${actionSummary}`);
+
+      if (firstTargetId) {
+        setSelectedTargetId(firstTargetId);
+        fetchActions(firstTargetId);
+      }
+      setForceReinstallState(null);
+    } catch (error) {
+      handleErrorWithToast(error, 'Failed to start the forced reinstall');
+    } finally {
+      setIsForceReinstalling(false);
     }
   }
 
@@ -234,6 +339,40 @@ export default function DeploymentDndLayoutContainer() {
           )}
           <ScheduleForm onChange={(data) => (scheduleFormData.current = data)} />
         </ConfirmationModal>
+        <Modal isOpen={forceReinstallState !== null} onClose={() => setForceReinstallState(null)} size={'md'}>
+          <Modal.Header>Force reinstall</Modal.Header>
+          <Modal.Content>
+            <p>The selected distribution set is already assigned to {forceReinstallState?.targetLabel}. A normal assignment is a no-op, so nothing changed.</p>
+            <p>
+              A forced reinstall assigns a byte-identical twin distribution set (same software modules) with a forced action, so the target downloads and
+              installs the same content again.
+            </p>
+            {forceReinstallState && forceReinstallState.twins.length > 0 && (
+              <p>
+                Will assign forced: <b>{forceReinstallState.twins.map(({ twin }) => `${twin.name} (id ${twin.id}, version ${twin.version})`).join(', ')}</b>
+              </p>
+            )}
+            {forceReinstallState && forceReinstallState.missing.length > 0 && (
+              <p>
+                No byte-identical twin distribution set was found for <b>{forceReinstallState.missing.map((distribution) => distribution.name).join(', ')}</b>.
+                No distribution set was created automatically. Create a twin with the same software modules and a new name/version, then assign it forced;
+                alternatively unassign the current distribution set first and assign again.
+              </p>
+            )}
+            <p>
+              <b>Warning:</b> this triggers a real update on {forceReinstallState?.targetLabel}.
+            </p>
+            <ActionButtons>
+              <ActionButtons.Primary
+                onClick={handleForceReinstall}
+                disabled={isForceReinstalling || !forceReinstallState || forceReinstallState.twins.length === 0 || forceReinstallState.missing.length > 0}
+              >
+                {isForceReinstalling ? 'Forcing...' : 'Force reinstall'}
+              </ActionButtons.Primary>
+              <ActionButtons.Secondary onClick={() => setForceReinstallState(null)}>Cancel</ActionButtons.Secondary>
+            </ActionButtons>
+          </Modal.Content>
+        </Modal>
       </div>
     </ExpandableCardProvider>
   );

@@ -24,7 +24,16 @@ export type ActionHistoryTableProps = {
   onForceClick?: (targetAction: TargetAction) => void;
   onConfirmClick?: (targetAction: TargetAction) => void;
   onActionIdClick?: (targetAction: TargetAction) => void;
+  onSelectionChange?: (targetActions: TargetAction[]) => void;
+  selectionResetKey?: string | number;
   visibleColumns: Partial<Record<TargetActionsTableColumnKey, VisibleColumn>>;
+};
+
+const formatActionStatus = (status?: string): string => {
+  if (!status) {
+    return '';
+  }
+  return status === 'wait_for_confirmation' ? 'awaiting confirmation' : status;
 };
 
 export default function ActionHistoryTable({
@@ -35,6 +44,8 @@ export default function ActionHistoryTable({
   onCancelClick,
   isLoading,
   onActionIdClick,
+  onSelectionChange,
+  selectionResetKey,
   visibleColumns,
 }: ActionHistoryTableProps) {
   const columnHelper = createColumnHelper<TargetAction>();
@@ -46,7 +57,7 @@ export default function ActionHistoryTable({
         header: 'Status',
         cell: (info) => (
           <div className={styles.statusCell}>
-            <Chip value={info.getValue()} colorClassName={info.getValue()} />
+            <Chip value={formatActionStatus(info.getValue())} colorClassName={info.getValue()} />
           </div>
         ),
       }),
@@ -125,7 +136,9 @@ export default function ActionHistoryTable({
         columnVisibility={columnVisibility}
         data={targetActions}
         draggable={false}
-        selectable={false}
+        selectable={true}
+        onSelectionChange={onSelectionChange}
+        selectionResetKey={selectionResetKey}
         onRowClick={(_, data) => onRowClick?.(data)}
         isLoading={isLoading}
       />
