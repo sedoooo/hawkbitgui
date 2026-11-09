@@ -3,6 +3,7 @@ import axiosInstance from '@/lib/axios';
 import {
   AssignModulesToDistributionSetInput,
   AssignTargetsToDistributionInput,
+  AssignTargetsToDistributionOutput,
   CreateDistributionSetInput,
   CreateDistributionSetResponse,
   GetAssignedSoftwareModulesResponse,
@@ -137,9 +138,13 @@ export class DistributionSetsService {
     }
   }
 
-  static async assignTargetsToDistributionSet(input: AssignTargetsToDistributionInput): Promise<void> {
+  static async assignTargetsToDistributionSet(input: AssignTargetsToDistributionInput): Promise<AssignTargetsToDistributionOutput> {
     try {
-      await axiosInstance.post(`/distributionsets/${input.distributionId}/assignedTargets`, input.targetConfigs);
+      const response = await axiosInstance.post<AssignTargetsToDistributionOutput>(
+        `/distributionsets/${input.distributionId}/assignedTargets`,
+        input.targetConfigs
+      );
+      return response.data ?? { assignedActions: [] };
     } catch (error) {
       console.error('Failed to assign targets to distribution set', error);
       throw error;

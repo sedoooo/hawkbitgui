@@ -2,6 +2,7 @@ import { FilterFiql, Target } from '@/entities';
 import axiosInstance from '@/lib/axios';
 import {
   AssignDistributionsToTargetInput,
+  AssignDistributionsToTargetOutput,
   CreateTargetInput,
   FetchTargetsInput,
   FetchTargetsOutput,
@@ -148,9 +149,10 @@ export class TargetsService {
     }
   }
 
-  static async assignDistributionsToTarget(input: AssignDistributionsToTargetInput): Promise<void> {
+  static async assignDistributionsToTarget(input: AssignDistributionsToTargetInput): Promise<AssignDistributionsToTargetOutput> {
     try {
-      await axiosInstance.post(`/targets/${input.controllerId}/assignedDS`, input.distributionsConfigs);
+      const response = await axiosInstance.post<AssignDistributionsToTargetOutput>(`/targets/${input.controllerId}/assignedDS`, input.distributionsConfigs);
+      return response.data ?? { assignedActions: [] };
     } catch (error) {
       console.error('Failed to assign distributions to target', error);
       throw error;

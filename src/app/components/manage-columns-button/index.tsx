@@ -3,6 +3,7 @@
 import type React from 'react';
 
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import styles from './styles.module.scss';
 import ChevronDownIcon from '../icons/chevron-down-icon';
 import Button from '../button';
@@ -30,6 +31,21 @@ export default function ManageColumnsButton(props: ManageColumnsButtonProps) {
     loadedStorageKeyRef.current = storageKey;
     setVisibleColumns(loadColumnVisibility(storageKey, columns));
   }, [columns, storageKey, setVisibleColumns]);
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setOpen(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [open]);
 
   const updateVisibleColumns = (nextColumns: Record<string, VisibleColumn>) => {
     setVisibleColumns(nextColumns);
@@ -66,36 +82,37 @@ export default function ManageColumnsButton(props: ManageColumnsButtonProps) {
         Manage columns
       </Button>
 
-      {open && (
-        <>
-          <div className={styles.dialogOverlay} onClick={handleOverlayClick} />
-          <div className={styles.dialogContent}>
-            <div className={styles.dialogHeader}>
-              <Text variant='heading-2'>Manage Columns</Text>
-              <IconButton onClick={() => setOpen(false)}>
-                <XIcon width={24} height={24} />
-              </IconButton>
-            </div>
+      {open &&
+        createPortal(
+          <div className={styles.dialogOverlay} onClick={handleOverlayClick}>
+            <div className={styles.dialogContent} role='dialog' aria-modal='true' aria-label='Manage Columns'>
+              <div className={styles.dialogHeader}>
+                <Text variant='heading-2'>Manage Columns</Text>
+                <IconButton onClick={() => setOpen(false)}>
+                  <XIcon width={24} height={24} />
+                </IconButton>
+              </div>
 
-            <div className={styles.columnsContainer}>
-              {Object.values(columns).map((column) => (
-                <Button key={column.id} variant={column.isSelected ? 'default' : 'outline'} onClick={() => toggleColumn(column.id)}>
-                  {column.label}
+              <div className={styles.columnsContainer}>
+                {Object.values(columns).map((column) => (
+                  <Button key={column.id} variant={column.isSelected ? 'default' : 'outline'} onClick={() => toggleColumn(column.id)}>
+                    {column.label}
+                  </Button>
+                ))}
+              </div>
+
+              <div className={styles.actionsContainer}>
+                <Button variant='ghost' color='secondary' onClick={handleSelectAll}>
+                  Select all
                 </Button>
-              ))}
+                <Button variant='ghost' color='danger' onClick={handleDeselectAll}>
+                  Deselect all
+                </Button>
+              </div>
             </div>
-
-            <div className={styles.actionsContainer}>
-              <Button variant='ghost' color='secondary' onClick={handleSelectAll}>
-                Select all
-              </Button>
-              <Button variant='ghost' color='danger' onClick={handleDeselectAll}>
-                Deselect all
-              </Button>
-            </div>
-          </div>
-        </>
-      )}
+          </div>,
+          document.body
+        )}
     </div>
   );
 }

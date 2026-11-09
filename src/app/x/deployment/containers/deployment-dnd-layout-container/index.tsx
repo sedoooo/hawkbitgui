@@ -13,7 +13,7 @@ import { DistributionSetsService } from '@/services/distribution-sets-service';
 import ConfirmationModal from '@/app/components/confirmation-modal';
 import { useConfirmDialog } from '@/app/hooks';
 import ScheduleForm, { FormData as ScheduleFormData } from '@/app/x/deployment/components/schedule-form';
-import { AssignConfig } from '@/services/targets-service.types';
+import { AssignConfig, AssignmentAction } from '@/services/targets-service.types';
 import ActionHistoryCardContainer from '@/app/x/deployment/containers/action-history-card-container';
 import { useTargetActionsTableStore } from '@/stores/target-action-table-store';
 import { ExpandableCardProvider } from '@/app/components/card/expandable-card-context';
@@ -22,10 +22,12 @@ const mapScheduleFormDataToAssignConfig = (id: string | number, data?: ScheduleF
   if (!data) {
     return {
       id: id,
+      confirmationRequired: false,
     };
   }
   const assignConfig: AssignConfig = {
     type: data.mode,
+    confirmationRequired: false,
     maintenanceWindow: data.maintenanceWindow
       ? {
           schedule: data.schedule,
@@ -39,6 +41,36 @@ const mapScheduleFormDataToAssignConfig = (id: string | number, data?: ScheduleF
     assignConfig.forcetime = new Date(data.forcedDate).getTime();
   }
   return assignConfig;
+};
+
+const resolveActionTargetId = (action: AssignmentAction, fallback?: string): string | undefined => {
+  const href = action._links?.target?.href;
+  if (!href) {
+    return fallback;
+  }
+  const segment = href.split('/').filter(Boolean).pop();
+  return segment ? decodeURIComponent(segment) : fallback;
+};
+
+// hawkBit user confirmation flow is enabled. When an assignment is created it stays in
+// `wait_for_confirmation`; confirm those actions immediately since the user already
+// confirmed the assignment in the UI dialog, so the GUI cannot leave a stuck action.
+const confirmPendingAssignmentActions = async (actions: AssignmentAction[], fallbackTargetIds: (string | undefined)[]) => {
+  for (const [index, action] of actions.entries()) {
+    if (action.status !== 'wait_for_confirmation') {
+      continue;
+    }
+    const controllerId = resolveActionTargetId(action, fallbackTargetIds[index]);
+    if (!controllerId) {
+      console.warn('Could not resolve target for pending confirmation action', action.id);
+      continue;
+    }
+    try {
+      await TargetsService.confirmAction(controllerId, action.id);
+    } catch (error) {
+      handleErrorWithToast(error, 'Failed to confirm assignment');
+    }
+  }
 };
 
 export default function DeploymentDndLayoutContainer() {
@@ -127,10 +159,15 @@ export default function DeploymentDndLayoutContainer() {
     console.log('distribution over target', distributions, target);
     const configs = distributions.map((distribution) => mapScheduleFormDataToAssignConfig(distribution.id, scheduleData));
     try {
-      await TargetsService.assignDistributionsToTarget({
+      const createdActions = await TargetsService.assignDistributionsToTarget({
         controllerId: target.controllerId,
         distributionsConfigs: configs,
       });
+      const pendingActions = createdActions.assignedActions ?? [];
+      await confirmPendingAssignmentActions(
+        pendingActions,
+        pendingActions.map(() => target.controllerId)
+      );
       setSelectedTargetId(target.controllerId);
       fetchActions(target.controllerId);
     } catch (error) {
@@ -142,10 +179,15 @@ export default function DeploymentDndLayoutContainer() {
     console.log('target over distribution', targets, distribution);
     const configs = targets.map((target) => mapScheduleFormDataToAssignConfig(target.controllerId, scheduleData));
     try {
-      await DistributionSetsService.assignTargetsToDistributionSet({
+      const createdActions = await DistributionSetsService.assignTargetsToDistributionSet({
         distributionId: distribution.id,
         targetConfigs: configs,
       });
+      const pendingActions = createdActions.assignedActions ?? [];
+      await confirmPendingAssignmentActions(
+        pendingActions,
+        pendingActions.map((_, index) => targets[index]?.controllerId)
+      );
       const firstTarget = targets[0];
       if (firstTarget) {
         setSelectedTargetId(firstTarget.controllerId);

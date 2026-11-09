@@ -1,5 +1,6 @@
 import { ApiResponse } from './types';
 import { Distribution, FilterFiql, SoftwareModule } from '@/entities';
+import { AssignmentResponse } from './targets-service.types';
 
 export type CreateDistributionSetInput = {
   name: string;
@@ -50,3 +51,5 @@ export type AssignTargetsToDistributionInput = {
     maintenanceWindow?: MaintenanceWindow;
   }[];
 };
+
+export type AssignTargetsToDistributionOutput = AssignmentResponse;

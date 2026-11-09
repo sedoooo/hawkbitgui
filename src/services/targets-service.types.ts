@@ -71,6 +71,27 @@ export type AssignDistributionsToTargetInput = {
   distributionsConfigs: AssignConfig[];
 };
 
+export type AssignmentAction = {
+  id: number;
+  status: string;
+  type?: string;
+  forceType?: string;
+  _links?: {
+    target?: {
+      href?: string;
+    };
+  };
+};
+
+export type AssignmentResponse = {
+  alreadyAssigned?: number;
+  assigned?: number;
+  assignedActions?: AssignmentAction[];
+  total?: number;
+};
+
+export type AssignDistributionsToTargetOutput = AssignmentResponse;
+
 export type GetActionsResponse = ApiResponse<TargetAction[]>;
 
 export type GetActionsOutput = TargetAction[];
