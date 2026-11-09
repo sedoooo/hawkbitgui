@@ -17,7 +17,16 @@ import { EMPTY_LIST_FILTERS, filterRowsByListFilters, getDistinctTypeOptions, ty
 import Button from '@/app/components/button';
 import { toast } from 'react-hot-toast';
 import { isErrorWithMessage } from '@/utils/is-error-with-message';
-import { type ActionStatusOverrides, pruneActionStatusOverrides, removeActionStatusOverride, setActionStatusOverride } from '@/utils/action-status-overrides';
+import {
+  type ActionStatusOverrides,
+  isLiveWaitingForConfirmation,
+  pruneActionStatusOverrides,
+  removeActionStatusOverride,
+  resolveActionStatus,
+  setActionStatusOverride,
+} from '@/utils/action-status-overrides';
+import { formatActionStatusLabel } from '@/utils/action-progress';
+import { useActionRowStatuses } from '@/app/x/deployment/hooks/use-action-row-statuses';
 import { describeConfirmFailure, getHttpStatus, summarizeBulkConfirm, formatBulkConfirmSummary } from '@/utils/action-confirmation';
 
 export default function ActionHistoryTableContainer() {
@@ -34,6 +43,7 @@ export default function ActionHistoryTableContainer() {
   const [listFilters, setListFilters] = useState<ListFilterState>(EMPTY_LIST_FILTERS);
   const [expandedActionId, setExpandedActionId] = useState<number | string | undefined>(undefined);
   const [statusOverrides, setStatusOverrides] = useState<ActionStatusOverrides>({});
+  const [detailRefreshKey, setDetailRefreshKey] = useState(0);
 
   const handleToggleExpand = (targetAction: TargetAction) => {
     setExpandedActionId((current) => (current !== undefined && String(current) === String(targetAction.id) ? undefined : targetAction.id));
@@ -44,6 +54,18 @@ export default function ActionHistoryTableContainer() {
   const handleStatusUpdate = useCallback((actionId: number | string, status: string) => {
     setStatusOverrides((current) => setActionStatusOverride(current, actionId, status));
   }, []);
+
+  // The action list feed can lag behind the status endpoint (it may keep
+  // reporting `wait_for_confirmation` while the target reports `running`), so
+  // poll the authoritative per-action status for every non-terminal row and
+  // let it win over the list value. This also keeps the Confirm button hidden
+  // as soon as the action is no longer waiting.
+  const { refreshActionStatus } = useActionRowStatuses({
+    controllerId: selectedTargetId,
+    actions: targetActions,
+    overrides: statusOverrides,
+    onStatusUpdate: handleStatusUpdate,
+  });
 
   const typeOptions = useMemo(() => {
     const values = targetActions.flatMap((action) => [
@@ -82,7 +104,10 @@ export default function ActionHistoryTableContainer() {
   const confirmActionDialog = useConfirmDialog<TargetAction>();
   const confirmBulkDialog = useConfirmDialog<TargetAction[]>();
 
-  const confirmableSelectedActions = useMemo(() => selectedActions.filter((action) => action.status === 'wait_for_confirmation'), [selectedActions]);
+  const confirmableSelectedActions = useMemo(
+    () => selectedActions.filter((action) => isLiveWaitingForConfirmation(action, statusOverrides)),
+    [selectedActions, statusOverrides]
+  );
 
   const clearSelection = () => {
     setSelectedActions([]);
@@ -129,7 +154,19 @@ export default function ActionHistoryTableContainer() {
     });
   };
 
-  const handleConfirmClick = (targetAction: TargetAction) => {
+  const handleConfirmClick = async (targetAction: TargetAction) => {
+    if (!selectedTargetId) return;
+
+    // Verify against the authoritative status endpoint before offering the
+    // dialog: the list row may still say wait_for_confirmation while the
+    // action is already running/finished.
+    const liveStatus = await refreshActionStatus(targetAction.id);
+    const currentStatus = liveStatus ?? resolveActionStatus(targetAction, statusOverrides);
+    if (currentStatus && currentStatus !== 'wait_for_confirmation') {
+      toast.error(`Action is no longer waiting for confirmation (current status: ${formatActionStatusLabel(currentStatus)}).`);
+      return;
+    }
+
     confirmActionDialog.open(targetAction, async () => {
       if (!selectedTargetId) return;
       setIsConfirming(true);
@@ -139,7 +176,10 @@ export default function ActionHistoryTableContainer() {
       try {
         await TargetsService.confirmAction(selectedTargetId, targetAction.id);
         await refreshActionState();
-        setStatusOverrides((current) => removeActionStatusOverride(current, targetAction.id));
+        // Apply the real status endpoint result immediately; the refreshed list
+        // may still be stale and show wait_for_confirmation.
+        await refreshActionStatus(targetAction.id);
+        setDetailRefreshKey((key) => key + 1);
         clearSelection();
         toast.success('Action confirmed');
       } catch (e) {
@@ -147,13 +187,14 @@ export default function ActionHistoryTableContainer() {
         // empty body). Refresh the real state and report it instead of a
         // generic failure.
         const actions = await refreshActionState();
-        setStatusOverrides((current) => removeActionStatusOverride(current, targetAction.id));
+        const liveStatus = await refreshActionStatus(targetAction.id);
+        setDetailRefreshKey((key) => key + 1);
         const currentAction = findAction(actions, targetAction.id);
         toast.error(
           describeConfirmFailure({
             httpStatus: getHttpStatus(e),
             message: isErrorWithMessage(e) ? e.message : undefined,
-            currentStatus: currentAction?.detailStatus ?? currentAction?.status,
+            currentStatus: liveStatus ?? currentAction?.detailStatus ?? currentAction?.status,
           })
         );
       } finally {
@@ -179,9 +220,10 @@ export default function ActionHistoryTableContainer() {
           confirmableSelectedActions.map((targetAction) => TargetsService.confirmAction(selectedTargetId, targetAction.id))
         );
         const actions = await refreshActionState();
-        confirmableSelectedActions.forEach((targetAction) => {
-          setStatusOverrides((current) => removeActionStatusOverride(current, targetAction.id));
-        });
+        // The list refresh can still be stale; ask the status endpoint for each
+        // action so duplicate/not-waiting outcomes report the real status.
+        const liveStatuses = await Promise.all(confirmableSelectedActions.map((targetAction) => refreshActionStatus(targetAction.id)));
+        setDetailRefreshKey((key) => key + 1);
 
         const outcomes = results.map((result, index) => {
           const confirmedAction = findAction(actions, confirmableSelectedActions[index].id);
@@ -192,7 +234,7 @@ export default function ActionHistoryTableContainer() {
             fulfilled: false,
             httpStatus: getHttpStatus(result.reason),
             message: isErrorWithMessage(result.reason) ? result.reason.message : undefined,
-            currentStatus: confirmedAction?.detailStatus ?? confirmedAction?.status,
+            currentStatus: liveStatuses[index] ?? confirmedAction?.detailStatus ?? confirmedAction?.status,
           };
         });
 
@@ -293,7 +335,7 @@ export default function ActionHistoryTableContainer() {
             selectedTargetId
               ? (targetAction) => (
                   <ActionProgressPanel
-                    key={`${selectedTargetId}:${targetAction.id}`}
+                    key={`${selectedTargetId}:${targetAction.id}:${detailRefreshKey}`}
                     action={targetAction}
                     controllerId={selectedTargetId}
                     onStatusUpdate={handleStatusUpdate}

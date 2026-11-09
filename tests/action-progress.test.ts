@@ -7,6 +7,7 @@ import {
   flattenActionMessages,
   formatActionStatusLabel,
   getCurrentPhaseIndex,
+  getLatestActionStatus,
   isTerminalActionStatus,
 } from '../src/utils/action-progress';
 
@@ -42,6 +43,24 @@ describe('formatActionStatusLabel', () => {
     expect(formatActionStatusLabel('wait_for_confirmation')).toBe('awaiting confirmation');
     expect(formatActionStatusLabel('FINISHED')).toBe('finished');
     expect(formatActionStatusLabel(undefined)).toBe('');
+  });
+});
+
+describe('getLatestActionStatus', () => {
+  test('uses the newest status message, not the stale action list status', () => {
+    const logs = [log(1, 'wait_for_confirmation', 1000, ['Assignment initiated']), log(2, 'running', 2000, [' installing']), log(3, 'running', 3000, [' 40%'])];
+    expect(getLatestActionStatus(logs)).toBe('running');
+  });
+
+  test('orders the status messages before picking the newest one', () => {
+    const logs = [log(3, 'finished', 3000, ['done']), log(1, 'wait_for_confirmation', 1000, ['wait']), log(2, 'running', 2000, ['go'])];
+    expect(getLatestActionStatus(logs)).toBe('finished');
+  });
+
+  test('returns undefined for missing or empty logs', () => {
+    expect(getLatestActionStatus(undefined)).toBeUndefined();
+    expect(getLatestActionStatus([])).toBeUndefined();
+    expect(getLatestActionStatus([{ id: 1, reportedAt: 1 } as ActionLog])).toBeUndefined();
   });
 });
 

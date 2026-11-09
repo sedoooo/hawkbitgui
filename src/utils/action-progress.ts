@@ -59,6 +59,20 @@ export function isTerminalActionStatus(status?: string | null): boolean {
   return normalized !== undefined && (TERMINAL_ACTION_STATUSES as readonly string[]).includes(normalized);
 }
 
+/**
+ * The action list feed can lag behind the per-action status endpoint (for
+ * example it keeps reporting `wait_for_confirmation` while the target already
+ * reports `running`). The newest status message is the authoritative live
+ * status, so derive it from the status log stream.
+ */
+export function getLatestActionStatus(logs?: ActionLog[] | null): string | undefined {
+  if (!logs || logs.length === 0) {
+    return undefined;
+  }
+  const sorted = sortLogs(logs);
+  return normalizeActionStatus(sorted[sorted.length - 1]?.type);
+}
+
 export function formatActionStatusLabel(status?: string | null): string {
   const normalized = normalizeActionStatus(status);
   if (!normalized) {

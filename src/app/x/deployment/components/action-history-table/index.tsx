@@ -17,7 +17,7 @@ import { transformToColumnVisibility } from '@/utils/columns-visibility';
 import { EMPTY_DISPLAY_VALUE } from '@/utils/table-display';
 import { TargetActionsTableColumnKey } from '@/stores/target-action-table-store';
 import { formatActionStatusLabel } from '@/utils/action-progress';
-import type { ActionStatusOverride } from '@/utils/action-status-overrides';
+import { isLiveWaitingForConfirmation, resolveActionStatus, type ActionStatusOverride } from '@/utils/action-status-overrides';
 
 export type { ActionStatusOverride } from '@/utils/action-status-overrides';
 
@@ -57,8 +57,7 @@ export default function ActionHistoryTable({
   const columnHelper = createColumnHelper<TargetAction>();
 
   const getEffectiveStatus = (action: TargetAction): string => {
-    const override = statusOverrides?.[String(action.id)];
-    return override?.detailStatus ?? override?.status ?? action.detailStatus ?? action.status;
+    return resolveActionStatus(action, statusOverrides ?? {});
   };
 
   const columns = useMemo(() => {
@@ -88,7 +87,7 @@ export default function ActionHistoryTable({
         id: 'status',
         header: 'Status',
         cell: (info) => (
-          <div className={styles.statusCell}>
+          <div className={styles.statusCell} data-testid={`action-status-${info.row.original.id}`}>
             <Chip value={formatActionStatusLabel(info.getValue())} colorClassName={info.getValue()} />
           </div>
         ),
@@ -140,8 +139,14 @@ export default function ActionHistoryTable({
         header: 'Actions',
         cell: (info) => (
           <div className={styles.actionButtons}>
-            {getEffectiveStatus(info.row.original) === 'wait_for_confirmation' && (
-              <IconButton height={'30px'} width={'30px'} title='Confirm action' onClick={() => onConfirmClick?.(info.row.original)}>
+            {isLiveWaitingForConfirmation(info.row.original, statusOverrides ?? {}) && (
+              <IconButton
+                height={'30px'}
+                width={'30px'}
+                title='Confirm action'
+                data-testid={`action-confirm-${info.row.original.id}`}
+                onClick={() => onConfirmClick?.(info.row.original)}
+              >
                 <CircleCheckMarkIcon width={20} height={20} />
               </IconButton>
             )}

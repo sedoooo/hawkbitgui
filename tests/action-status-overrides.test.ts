@@ -1,5 +1,11 @@
 import { describe, expect, test } from 'bun:test';
-import { pruneActionStatusOverrides, removeActionStatusOverride, setActionStatusOverride } from '../src/utils/action-status-overrides';
+import {
+  isLiveWaitingForConfirmation,
+  pruneActionStatusOverrides,
+  removeActionStatusOverride,
+  resolveActionStatus,
+  setActionStatusOverride,
+} from '../src/utils/action-status-overrides';
 
 describe('action status overrides', () => {
   test('keeps live statuses per action id', () => {
@@ -31,7 +37,12 @@ describe('action status overrides', () => {
     expect(removeActionStatusOverride(initial, 999)).toBe(initial);
   });
 
-  test('prunes overrides for missing and terminal actions only', () => {
+  test('returns the same object when the status did not change', () => {
+    const initial = setActionStatusOverride({}, 12, 'running');
+    expect(setActionStatusOverride(initial, 12, 'running')).toBe(initial);
+  });
+
+  test('prunes overrides for actions that disappeared from the list', () => {
     const initial = {
       '12': { status: 'running', detailStatus: 'running' },
       '91': { status: 'finished', detailStatus: 'finished' },
@@ -42,11 +53,46 @@ describe('action status overrides', () => {
       { id: 91, status: 'finished' },
     ]);
 
-    expect(pruned).toEqual({ '12': { status: 'running', detailStatus: 'running' } });
+    expect(pruned).toEqual({
+      '12': { status: 'running', detailStatus: 'running' },
+      '91': { status: 'finished', detailStatus: 'finished' },
+    });
+  });
+
+  test('keeps a live status even when the stale list already reports a terminal status', () => {
+    const initial = { '91': { status: 'running', detailStatus: 'running' } };
+    const pruned = pruneActionStatusOverrides(initial, [{ id: 91, status: 'finished' }]);
+
+    expect(pruned).toEqual({ '91': { status: 'running', detailStatus: 'running' } });
   });
 
   test('returns the original object when nothing needs pruning', () => {
     const initial = { '12': { status: 'running', detailStatus: 'running' } };
     expect(pruneActionStatusOverrides(initial, [{ id: 12, status: 'running' }])).toBe(initial);
+  });
+});
+
+describe('resolveActionStatus', () => {
+  test('prefers a live override over the stale list status', () => {
+    const action = { id: 204, status: 'wait_for_confirmation', detailStatus: 'wait_for_confirmation' };
+    expect(resolveActionStatus(action, { '204': { status: 'running', detailStatus: 'running' } })).toBe('running');
+  });
+
+  test('falls back to the list status when no live status is known', () => {
+    expect(resolveActionStatus({ id: 204, status: 'retrieved', detailStatus: 'retrieved' }, {})).toBe('retrieved');
+    expect(resolveActionStatus({ id: 204, status: 'retrieved' }, {})).toBe('retrieved');
+  });
+
+  test('returns an empty string when the action has no status at all', () => {
+    expect(resolveActionStatus({ id: 204 }, {})).toBe('');
+  });
+});
+
+describe('isLiveWaitingForConfirmation', () => {
+  test('trusts only a live wait_for_confirmation status, not the stale list value', () => {
+    const staleListAction = { id: 204, status: 'wait_for_confirmation' };
+    expect(isLiveWaitingForConfirmation(staleListAction, {})).toBe(false);
+    expect(isLiveWaitingForConfirmation(staleListAction, { '204': { status: 'running', detailStatus: 'running' } })).toBe(false);
+    expect(isLiveWaitingForConfirmation(staleListAction, { '204': { status: 'wait_for_confirmation', detailStatus: 'wait_for_confirmation' } })).toBe(true);
   });
 });

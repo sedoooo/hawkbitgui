@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActionLog } from '@/entities/action-log';
 import { TargetsService } from '@/services/targets-service';
-import { isTerminalActionStatus, normalizeActionStatus } from '@/utils/action-progress';
+import { getLatestActionStatus, isTerminalActionStatus, normalizeActionStatus } from '@/utils/action-progress';
 import { isErrorWithMessage } from '@/utils/is-error-with-message';
 
 export interface UseActionStatusOptions {
@@ -141,7 +141,7 @@ export function useActionStatus({
         setLastUpdated(Date.now());
         hasLoadedRef.current = true;
 
-        const latestStatus = normalizeActionStatus(sortedLogs[sortedLogs.length - 1]?.type);
+        const latestStatus = getLatestActionStatus(sortedLogs);
         if (latestStatus) {
           setDerivedStatus(latestStatus);
           onStatusUpdateRef.current?.(actionId, latestStatus);
