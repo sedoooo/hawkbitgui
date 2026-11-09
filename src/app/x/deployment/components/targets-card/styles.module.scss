@@ -1,5 +1,16 @@
 @use 'src/app/styles/variables' as *;
 
+.cardActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+
+  .filterButton {
+    margin-left: 0;
+  }
+}
+
 .filterButton {
   display: flex;
   margin-left: auto;

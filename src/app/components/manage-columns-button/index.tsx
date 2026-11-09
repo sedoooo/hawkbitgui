@@ -2,7 +2,7 @@
 
 import type React from 'react';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import styles from './styles.module.scss';
 import ChevronDownIcon from '../icons/chevron-down-icon';
 import Button from '../button';
@@ -10,19 +10,36 @@ import XIcon from '../icons/x-icon';
 import IconButton from '../icon-button';
 import { VisibleColumn } from '@/types/utils/visible-column';
 import Text from '../text';
+import { loadColumnVisibility, saveColumnVisibility } from '@/utils/columns-visibility';
 
 export interface ManageColumnsButtonProps {
   columns: Record<string, VisibleColumn>;
   setVisibleColumns: (columns: Record<string, VisibleColumn>) => void;
+  storageKey?: string;
 }
 
 export default function ManageColumnsButton(props: ManageColumnsButtonProps) {
-  const { columns, setVisibleColumns } = props;
+  const { columns, setVisibleColumns, storageKey } = props;
   const [open, setOpen] = useState(false);
+  const defaultsRef = useRef(columns);
+
+  useEffect(() => {
+    if (!storageKey) {
+      return;
+    }
+    setVisibleColumns(loadColumnVisibility(storageKey, defaultsRef.current));
+  }, [storageKey, setVisibleColumns]);
+
+  const updateVisibleColumns = (nextColumns: Record<string, VisibleColumn>) => {
+    setVisibleColumns(nextColumns);
+    if (storageKey) {
+      saveColumnVisibility(storageKey, nextColumns);
+    }
+  };
 
   const toggleColumn = (id: string) => {
     const column = columns[id];
-    setVisibleColumns({
+    updateVisibleColumns({
       ...columns,
       [id]: { ...column, isSelected: !column.isSelected },
     });
@@ -35,11 +52,11 @@ export default function ManageColumnsButton(props: ManageColumnsButtonProps) {
   };
 
   const handleSelectAll = () => {
-    setVisibleColumns(Object.fromEntries(Object.entries(columns).map(([id, column]) => [id, { ...column, isSelected: true }])));
+    updateVisibleColumns(Object.fromEntries(Object.entries(columns).map(([id, column]) => [id, { ...column, isSelected: true }])));
   };
 
   const handleDeselectAll = () => {
-    setVisibleColumns(Object.fromEntries(Object.entries(columns).map(([id, column]) => [id, { ...column, isSelected: false }])));
+    updateVisibleColumns(Object.fromEntries(Object.entries(columns).map(([id, column]) => [id, { ...column, isSelected: false }])));
   };
 
   return (

@@ -10,6 +10,8 @@ import PanelCard from '@/app/components/panel-card';
 import TargetTableContainer from '@/app/x/deployment/containers/target-table-container';
 import CreateTargetFormContainer from '@/app/x/deployment/containers/create-target-form-container';
 import ExpandableSearchBarContainer from '@/app/x/deployment/containers/expandable-search-bar-container';
+import ManageColumnsButton from '@/app/components/manage-columns-button';
+import { TARGETS_TABLE_VISIBLE_COLUMNS_STORAGE_KEY, useTargetsTableStore } from '@/stores/targets-table-store';
 
 type TargetsCardProps = {
   isExpanded: boolean;
@@ -32,6 +34,9 @@ export default function TargetsCard({
   onOpenTargetFiltersModal,
   onCloseTargetFiltersModal,
 }: TargetsCardProps) {
+  const visibleColumns = useTargetsTableStore((state) => state.visibleColumns);
+  const setVisibleColumns = useTargetsTableStore((state) => state.setVisibleColumns);
+
   return (
     <>
       <PanelCard expanded={isExpanded}>
@@ -47,9 +52,12 @@ export default function TargetsCard({
             {/*  Bulk Upload Targets*/}
             {/*</Button>*/}
           </div>
-          <IconButton className={styles.filterButton} onClick={onOpenTargetFiltersModal}>
-            <FilterIcon />
-          </IconButton>
+          <div className={styles.cardActions}>
+            <ManageColumnsButton columns={visibleColumns} setVisibleColumns={setVisibleColumns} storageKey={TARGETS_TABLE_VISIBLE_COLUMNS_STORAGE_KEY} />
+            <IconButton className={styles.filterButton} onClick={onOpenTargetFiltersModal}>
+              <FilterIcon />
+            </IconButton>
+          </div>
         </PanelCard.Actions>
 
         <PanelCard.Content>

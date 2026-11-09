@@ -14,7 +14,7 @@ import { useDistributionsPolling } from '@/app/hooks/use-distributions-polling';
 export default function DistributionsTableContainer() {
   const filteredDistributions = useDistributionsTableStore((state) => state.filteredDistributions);
   const isLoading = useDistributionsTableStore((state) => state.isLoading);
-  const isExpanded = useDistributionsTableStore((state) => state.isExpanded);
+  const visibleColumns = useDistributionsTableStore((state) => state.visibleColumns);
   const fetchDistributions = useDistributionsTableStore((state) => state.fetchDistributions);
   const page = useDistributionsTableStore((state) => state.page);
   const size = useDistributionsTableStore((state) => state.size);
@@ -48,7 +48,7 @@ export default function DistributionsTableContainer() {
           ...distribution,
           status: 'Error',
         }))}
-        expanded={isExpanded}
+        visibleColumns={visibleColumns}
         onNameClick={(distribution) => {
           distributionsTableStore.setSelectedDistribution(distribution);
           setIsDistributionInfoModalOpen(true);

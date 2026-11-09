@@ -11,10 +11,12 @@ import TrashIcon from '@/app/components/icons/trash-icon';
 import dayjs from 'dayjs';
 import TargetStatusCell from '@/app/components/target-status-cell';
 import { Pagination } from '@/types/utils/pagination';
+import { VisibleColumn } from '@/types/utils/visible-column';
+import { transformToColumnVisibility } from '@/utils/columns-visibility';
+import { TargetsTableColumnKey } from '@/stores/targets-table-store';
 
 export type TargetTableProps = {
   isLoading?: boolean;
-  expanded?: boolean;
   onTargetNameClick?: (target: Target) => void;
   targets?: Target[];
   pagination?: Pagination;
@@ -23,10 +25,10 @@ export type TargetTableProps = {
   onPinClick?: (target: Target) => void;
   onRowClick?: (target: Target) => void;
   onPageChange?: (page: number) => void;
+  visibleColumns: Partial<Record<TargetsTableColumnKey, VisibleColumn>>;
 };
 
 export default function TargetTable({
-  expanded,
   onTargetNameClick,
   targets = [],
   onEditClick,
@@ -36,6 +38,7 @@ export default function TargetTable({
   // onPinClick,
   onRowClick,
   isLoading,
+  visibleColumns,
 }: TargetTableProps) {
   const columnHelper = createColumnHelper<Target>();
 
@@ -49,44 +52,7 @@ export default function TargetTable({
     };
   }, []);
 
-  const shortColumns = useMemo(() => {
-    return [
-      columnHelper.accessor('controllerId', {
-        header: 'Target Id (Controller ID)',
-        size: 240,
-        cell: (info) => info.getValue(),
-      }),
-      columnHelper.accessor('name', {
-        header: 'Name',
-        cell: (info) => (
-          <button className={styles.linkButton} onClick={() => onTargetNameClick?.(info.row.original)}>
-            {info.getValue()}
-          </button>
-        ),
-      }),
-      columnHelper.accessor('updateStatus', statusAccessor),
-      columnHelper.display({
-        id: 'actions',
-        header: 'Actions',
-        size: 100,
-        cell: (info) => (
-          <div className={styles.actionButtons}>
-            {/*<IconButton height={'30px'} width={'30px'} onClick={() => onPinClick?.(info.row.original)}>*/}
-            {/*  <PinIcon />*/}
-            {/*</IconButton>*/}
-            <IconButton height={'30px'} width={'30px'} onClick={() => onEditClick?.(info.row.original)}>
-              <EditIcon />
-            </IconButton>
-            <IconButton height={'30px'} width={'30px'} onClick={() => onDeleteClick?.(info.row.original)}>
-              <TrashIcon />
-            </IconButton>
-          </div>
-        ),
-      }),
-    ];
-  }, [columnHelper, onDeleteClick, onEditClick, onTargetNameClick, statusAccessor]);
-
-  const fullColumns = useMemo(() => {
+  const columns = useMemo(() => {
     return [
       columnHelper.accessor('controllerId', {
         header: 'Target Id (Controller ID)',
@@ -139,10 +105,15 @@ export default function TargetTable({
     ];
   }, [columnHelper, onDeleteClick, onEditClick, onTargetNameClick, statusAccessor]);
 
+  const columnVisibility = useMemo(() => {
+    return transformToColumnVisibility(visibleColumns);
+  }, [visibleColumns]);
+
   return (
     <>
       <Table
-        columns={expanded ? fullColumns : shortColumns}
+        columns={columns}
+        columnVisibility={columnVisibility}
         data={targets}
         draggable={true}
         selectable={true}

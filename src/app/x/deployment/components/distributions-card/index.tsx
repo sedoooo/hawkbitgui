@@ -8,6 +8,8 @@ import CreateTargetFormContainer from '../../containers/create-target-form-conta
 import PanelCard from '@/app/components/panel-card';
 import DistributionsTableContainer from '@/app/x/deployment/containers/distributions-table-container';
 import DistributionFilters from '@/app/x/deployment/components/distribution-filters';
+import ManageColumnsButton from '@/app/components/manage-columns-button';
+import { DISTRIBUTIONS_TABLE_VISIBLE_COLUMNS_STORAGE_KEY, useDistributionsTableStore } from '@/stores/distributions-table-store';
 
 type DistributionsCardProps = {
   isExpanded: boolean;
@@ -28,12 +30,16 @@ export default function DistributionsCard({
   onOpenDistributionsFiltersModal,
   onCloseDistributionsFiltersModal,
 }: DistributionsCardProps) {
+  const visibleColumns = useDistributionsTableStore((state) => state.visibleColumns);
+  const setVisibleColumns = useDistributionsTableStore((state) => state.setVisibleColumns);
+
   return (
     <>
       <PanelCard expanded={isExpanded}>
         <PanelCard.Header title='Distributions' onToggleExpand={onToggleExpand} isExpanded={isExpanded} />
         <PanelCard.Actions>
           <div className={styles.actionButtons}>
+            <ManageColumnsButton columns={visibleColumns} setVisibleColumns={setVisibleColumns} storageKey={DISTRIBUTIONS_TABLE_VISIBLE_COLUMNS_STORAGE_KEY} />
             <IconButton onClick={onOpenDistributionsFiltersModal} className={styles.filterButton}>
               <FilterIcon />
             </IconButton>

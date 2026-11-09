@@ -15,7 +15,7 @@ import { useTargetActionsTableStore } from '@/stores/target-action-table-store';
 export default function TargetTableContainer() {
   const filteredTargets = useTargetsTableStore((state) => state.filteredTargets);
   const isLoading = useTargetsTableStore((state) => state.isLoading);
-  const isExpanded = useTargetsTableStore((state) => state.isExpanded);
+  const visibleColumns = useTargetsTableStore((state) => state.visibleColumns);
   const fetchTargets = useTargetsTableStore((state) => state.fetchTargets);
   const page = useTargetsTableStore((state) => state.page);
   const size = useTargetsTableStore((state) => state.size);
@@ -60,7 +60,7 @@ export default function TargetTableContainer() {
           ...target,
           status: 'Error',
         }))}
-        expanded={isExpanded}
+        visibleColumns={visibleColumns}
         onTargetNameClick={(target) => {
           targetsTableStore.setSelectedTarget(target);
           setIsTargetInfoModalOpen(true);
