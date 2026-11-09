@@ -5,7 +5,7 @@ import ExpandableSearchBar from '@/app/components/expandable-search-bar';
 import TargetFiltersTableContainer from '../../containers/target-filters-table-container';
 import StaticCard from '@/app/components/static-card';
 import ManageColumnsButton from '@/app/components/manage-columns-button';
-import { useTargetFiltersTableStore } from '@/stores/target-filters-table-store';
+import { TARGET_FILTERS_TABLE_VISIBLE_COLUMNS_STORAGE_KEY, useTargetFiltersTableStore } from '@/stores/target-filters-table-store';
 
 interface TargetFiltersCardProps {
   onCreateClick: () => void;
@@ -25,7 +25,7 @@ export default function TargetFiltersCard({ onCreateClick, onSearchChange }: Tar
           <Button leftIcon={<PlusIcon width={18} height={18} />} onClick={onCreateClick}>
             Create new filter
           </Button>
-          <ManageColumnsButton columns={visibleColumns} setVisibleColumns={setVisibleColumns} />
+          <ManageColumnsButton columns={visibleColumns} setVisibleColumns={setVisibleColumns} storageKey={TARGET_FILTERS_TABLE_VISIBLE_COLUMNS_STORAGE_KEY} />
         </StaticCard.Actions>
       </StaticCard.Header>
       <StaticCard.Body>

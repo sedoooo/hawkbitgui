@@ -8,14 +8,18 @@ import Table from '@/app/components/table';
 import Button from '@/app/components/button';
 import { DeployGroupStatusCell } from './components/deploy-group-status-cell';
 import { TotalTargetsPerStatusCell } from '../rollouts-table/components/total-targets-per-status-cell';
+import { VisibleColumn } from '@/types/utils/visible-column';
+import { transformToColumnVisibility } from '@/utils/columns-visibility';
+import { RolloutDeployGroupsTableColumnKey } from '@/stores/rollout-deploy-groups-table-store';
 
 export type RolloutDetailsTableProps = {
   deployGroups: RolloutDeployGroup[];
   isLoading?: boolean;
   onNameClick: (rolloutDeployGroup: RolloutDeployGroup) => void;
+  visibleColumns: Partial<Record<RolloutDeployGroupsTableColumnKey, VisibleColumn>>;
 };
 
-export default function RolloutDetailsTable({ deployGroups, isLoading = false, onNameClick }: RolloutDetailsTableProps) {
+export default function RolloutDetailsTable({ deployGroups, isLoading = false, onNameClick, visibleColumns }: RolloutDetailsTableProps) {
   const columnHelper = createColumnHelper<RolloutDeployGroup>();
 
   const formatPercentage = (percentage: number) => {
@@ -80,5 +84,9 @@ export default function RolloutDetailsTable({ deployGroups, isLoading = false, o
     ];
   }, [columnHelper, onNameClick, calculateFinishedPercentage]);
 
-  return <Table columns={columns} data={deployGroups} isLoading={isLoading} />;
+  const columnVisibility = useMemo(() => {
+    return transformToColumnVisibility(visibleColumns);
+  }, [visibleColumns]);
+
+  return <Table columns={columns} columnVisibility={columnVisibility} data={deployGroups} isLoading={isLoading} />;
 }

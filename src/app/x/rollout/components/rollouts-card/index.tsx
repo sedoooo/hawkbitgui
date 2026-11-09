@@ -16,16 +16,44 @@ import { RolloutsDeployGroupTargetDetailsCardHeader } from '../rollout-deploy-gr
 import CreateRolloutFormContainer from '../../containers/create-rollout-form-container';
 import StaticCard from '@/app/components/static-card';
 import ManageColumnsButton from '@/app/components/manage-columns-button';
-import { useRolloutsTableStore } from '@/stores/rollouts-table-store';
+import { ROLLOUTS_TABLE_VISIBLE_COLUMNS_STORAGE_KEY, useRolloutsTableStore } from '@/stores/rollouts-table-store';
+import { ROLLOUT_DEPLOY_GROUPS_TABLE_VISIBLE_COLUMNS_STORAGE_KEY, useRolloutDeployGroupsTableStore } from '@/stores/rollout-deploy-groups-table-store';
+import {
+  ROLLOUT_DEPLOY_GROUP_TARGETS_TABLE_VISIBLE_COLUMNS_STORAGE_KEY,
+  useRolloutDeployGroupTargetsTableStore,
+} from '@/stores/rollout-deploy-group-targets-table-store';
 
 export default function RolloutsCard() {
   const [isCreateRolloutFormOpen, setIsCreateRolloutFormOpen] = useState(false);
   const selectedRollout = useRolloutsPageStore((state) => state.selectedRollout);
   const selectedDeployGroup = useRolloutsPageStore((state) => state.selectedDeployGroup);
   const tableType = useRolloutsPageStore((state) => state.tableType);
-  const visibleColumns = useRolloutsTableStore((state) => state.visibleColumns);
-  const setVisibleColumns = useRolloutsTableStore((state) => state.setVisibleColumns);
+  const rolloutsVisibleColumns = useRolloutsTableStore((state) => state.visibleColumns);
+  const setRolloutsVisibleColumns = useRolloutsTableStore((state) => state.setVisibleColumns);
+  const deployGroupsVisibleColumns = useRolloutDeployGroupsTableStore((state) => state.visibleColumns);
+  const setDeployGroupsVisibleColumns = useRolloutDeployGroupsTableStore((state) => state.setVisibleColumns);
+  const deployGroupTargetsVisibleColumns = useRolloutDeployGroupTargetsTableStore((state) => state.visibleColumns);
+  const setDeployGroupTargetsVisibleColumns = useRolloutDeployGroupTargetsTableStore((state) => state.setVisibleColumns);
   const setTableType = useRolloutsPageStore((state) => state.setTableType);
+
+  const activeColumns =
+    tableType === 'deploy-groups'
+      ? {
+          columns: deployGroupsVisibleColumns,
+          setVisibleColumns: setDeployGroupsVisibleColumns,
+          storageKey: ROLLOUT_DEPLOY_GROUPS_TABLE_VISIBLE_COLUMNS_STORAGE_KEY,
+        }
+      : tableType === 'deploy-group-targets'
+        ? {
+            columns: deployGroupTargetsVisibleColumns,
+            setVisibleColumns: setDeployGroupTargetsVisibleColumns,
+            storageKey: ROLLOUT_DEPLOY_GROUP_TARGETS_TABLE_VISIBLE_COLUMNS_STORAGE_KEY,
+          }
+        : {
+            columns: rolloutsVisibleColumns,
+            setVisibleColumns: setRolloutsVisibleColumns,
+            storageKey: ROLLOUTS_TABLE_VISIBLE_COLUMNS_STORAGE_KEY,
+          };
 
   const openForm = () => {
     setIsCreateRolloutFormOpen(true);
@@ -60,7 +88,7 @@ export default function RolloutsCard() {
             <Button leftIcon={<PlusIcon width={18} height={18} />} onClick={openForm}>
               Create new rollout
             </Button>
-            <ManageColumnsButton columns={visibleColumns} setVisibleColumns={setVisibleColumns} />
+            <ManageColumnsButton columns={activeColumns.columns} setVisibleColumns={activeColumns.setVisibleColumns} storageKey={activeColumns.storageKey} />
           </StaticCard.Actions>
         </StaticCard.Header>
         <Card.Body>

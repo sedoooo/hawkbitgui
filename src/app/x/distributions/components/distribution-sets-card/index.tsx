@@ -3,13 +3,13 @@
 import Button from '@/app/components/button';
 import IconButton from '@/app/components/icon-button';
 import { Modal } from '@/app/components/modal';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import DistributionSetFormContainer from '../../containers/distribution-set-form-container';
 import DistributionSetsTableContainer from '../../containers/distribution-sets-table-container';
 import PanelCard from '@/app/components/panel-card';
 import ExpandableSearchBarContainer from '@/app/x/deployment/containers/expandable-search-bar-container';
 import FilterIcon from '@/app/components/icons/filter-icon';
-import { useDistributionsSetsTableStore } from '@/stores/distribution-sets-table-store';
+import { DISTRIBUTION_SETS_TABLE_VISIBLE_COLUMNS_STORAGE_KEY, useDistributionsSetsTableStore } from '@/stores/distribution-sets-table-store';
 import ManageColumnsButton from '@/app/components/manage-columns-button';
 import { useModal } from '@/app/hooks';
 import DistributionSetsFilters from '../distribution-set-filters';
@@ -21,20 +21,9 @@ export default function DistributionSetsCard() {
 
   const visibleColumns = useDistributionsSetsTableStore((state) => state.visibleColumns);
   const setVisibleColumns = useDistributionsSetsTableStore((state) => state.setVisibleColumns);
-  const expandColumnsVisibility = useDistributionsSetsTableStore((state) => state.expandColumnsVisibility);
-  const resetColumnsVisibility = useDistributionsSetsTableStore((state) => state.resetColumnsVisibility);
-
   const handleExpand = () => {
     setIsExpanded((prev) => !prev);
   };
-
-  useEffect(() => {
-    if (isExpanded) {
-      expandColumnsVisibility();
-    } else {
-      resetColumnsVisibility();
-    }
-  }, [isExpanded, expandColumnsVisibility, resetColumnsVisibility]);
 
   const openForm = () => {
     setIsCreateDistributionSetFormOpen(true);
@@ -57,7 +46,11 @@ export default function DistributionSetsCard() {
             <IconButton onClick={filtersModal.open} style={{ padding: '4px' }}>
               <FilterIcon />
             </IconButton>
-            {isExpanded && <ManageColumnsButton columns={visibleColumns} setVisibleColumns={setVisibleColumns} />}
+            <ManageColumnsButton
+              columns={visibleColumns}
+              setVisibleColumns={setVisibleColumns}
+              storageKey={DISTRIBUTION_SETS_TABLE_VISIBLE_COLUMNS_STORAGE_KEY}
+            />
           </div>
         </PanelCard.Actions>
 

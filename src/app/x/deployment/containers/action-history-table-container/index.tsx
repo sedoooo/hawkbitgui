@@ -15,7 +15,7 @@ import { handleErrorWithToast } from '@/utils/handle-error-with-toast';
 export default function ActionHistoryTableContainer() {
   const targetActions = useTargetActionsTableStore((state) => state.actions);
   const isLoading = useTargetActionsTableStore((state) => state.isLoading);
-  const isExpanded = useTargetActionsTableStore((state) => state.isExpanded);
+  const visibleColumns = useTargetActionsTableStore((state) => state.visibleColumns);
   const fetchTargetActions = useTargetActionsTableStore((state) => state.fetchActions);
   const pollTargetActions = useTargetActionsTableStore((state) => state.pollActions);
   const selectedTargetId = useTargetActionsTableStore((state) => state.selectedTargetId);
@@ -98,7 +98,7 @@ export default function ActionHistoryTableContainer() {
     <>
       <ActionHistoryTable
         targetActions={targetActions}
-        expanded={isExpanded}
+        visibleColumns={visibleColumns}
         isLoading={isLoading}
         onActionIdClick={handleActionIdClick}
         onCancelClick={handleCancelClick}

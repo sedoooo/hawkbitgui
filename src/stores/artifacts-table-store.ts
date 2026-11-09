@@ -1,10 +1,15 @@
 import { create } from 'zustand';
 import { VisibleColumn } from '@/types/utils/visible-column';
 import { SoftwareModuleArtifactKey } from '@/entities/software-module-artifact';
+import { getColumnVisibilityStorageKey } from '@/utils/columns-visibility';
 
-const DEFAULT_VISIBLE_COLUMNS = {
-  version: {
-    id: 'name',
+export const ARTIFACTS_TABLE_VISIBLE_COLUMNS_STORAGE_KEY = getColumnVisibilityStorageKey('upload-artifacts-table');
+
+type ArtifactsTableColumnKey = SoftwareModuleArtifactKey | 'hashes.sha1' | 'hashes.md5' | 'hashes.sha256';
+
+const DEFAULT_VISIBLE_COLUMNS: Partial<Record<ArtifactsTableColumnKey, VisibleColumn>> = {
+  providedFilename: {
+    id: 'providedFilename',
     label: 'File name',
     isSelected: true,
   },
@@ -36,7 +41,7 @@ const DEFAULT_VISIBLE_COLUMNS = {
 };
 
 interface ArtifactsTableState {
-  visibleColumns: Partial<Record<SoftwareModuleArtifactKey, VisibleColumn>>;
+  visibleColumns: Partial<Record<ArtifactsTableColumnKey, VisibleColumn>>;
   setVisibleColumns: (columns: Record<string, VisibleColumn>) => void;
 }
 

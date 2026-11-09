@@ -1,6 +1,9 @@
 import { create } from 'zustand';
 import { RolloutKey } from '@/entities/rollout';
 import { VisibleColumn } from '@/types/utils/visible-column';
+import { getColumnVisibilityStorageKey } from '@/utils/columns-visibility';
+
+export const ROLLOUTS_TABLE_VISIBLE_COLUMNS_STORAGE_KEY = getColumnVisibilityStorageKey('rollouts-table');
 
 interface RolloutsTableState {
   page: number;

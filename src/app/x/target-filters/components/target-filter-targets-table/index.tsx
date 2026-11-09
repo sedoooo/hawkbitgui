@@ -8,6 +8,9 @@ import dayjs from 'dayjs';
 import Button from '@/app/components/button';
 import TargetStatusCell from '@/app/components/target-status-cell';
 import { Pagination } from '@/types/utils/pagination';
+import { VisibleColumn } from '@/types/utils/visible-column';
+import { transformToColumnVisibility } from '@/utils/columns-visibility';
+import { TargetFilterTargetsTableColumnKey } from '@/stores/target-filter-targets-table-store';
 
 export type TargetFilterTargetsTableProps = {
   targets: Target[];
@@ -15,9 +18,17 @@ export type TargetFilterTargetsTableProps = {
   pagination: Pagination;
   onControllerIdClick: (controllerId: string) => void;
   onPageChange: (page: number) => void;
+  visibleColumns: Partial<Record<TargetFilterTargetsTableColumnKey, VisibleColumn>>;
 };
 
-export default function TargetFilterTargetsTable({ targets, isLoading = false, pagination, onControllerIdClick, onPageChange }: TargetFilterTargetsTableProps) {
+export default function TargetFilterTargetsTable({
+  targets,
+  isLoading = false,
+  pagination,
+  onControllerIdClick,
+  onPageChange,
+  visibleColumns,
+}: TargetFilterTargetsTableProps) {
   const columnHelper = createColumnHelper<Target>();
 
   const columns = useMemo(() => {
@@ -63,5 +74,11 @@ export default function TargetFilterTargetsTable({ targets, isLoading = false, p
     ];
   }, [columnHelper, onControllerIdClick]);
 
-  return <Table columns={columns} data={targets} isLoading={isLoading} pagination={pagination} onPageChange={onPageChange} />;
+  const columnVisibility = useMemo(() => {
+    return transformToColumnVisibility(visibleColumns);
+  }, [visibleColumns]);
+
+  return (
+    <Table columns={columns} columnVisibility={columnVisibility} data={targets} isLoading={isLoading} pagination={pagination} onPageChange={onPageChange} />
+  );
 }

@@ -1,8 +1,11 @@
 import { create } from 'zustand';
 import { TargetFilterKey } from '@/entities/target-filter';
 import { VisibleColumn } from '@/types/utils/visible-column';
+import { getColumnVisibilityStorageKey } from '@/utils/columns-visibility';
 
 type TargetFiltersColumnKey = TargetFilterKey | 'actions';
+
+export const TARGET_FILTERS_TABLE_VISIBLE_COLUMNS_STORAGE_KEY = getColumnVisibilityStorageKey('target-filters-table');
 
 interface TargetFiltersTableState {
   page: number;

@@ -3,7 +3,7 @@ import { useSoftwareModulesStore } from '@/stores/software-modules-store';
 import { useMemo } from 'react';
 import StaticCard from '@/app/components/static-card';
 import ManageColumnsButton from '@/app/components/manage-columns-button';
-import { useArtifactsTableStore } from '@/stores/artifacts-table-store';
+import { ARTIFACTS_TABLE_VISIBLE_COLUMNS_STORAGE_KEY, useArtifactsTableStore } from '@/stores/artifacts-table-store';
 
 export default function ArtifactsCard() {
   const selectedSoftwareModule = useSoftwareModulesStore((state) => state.selectedSoftwareModule);
@@ -20,7 +20,7 @@ export default function ArtifactsCard() {
       <StaticCard.Header>
         <StaticCard.Title>{cardTitle}</StaticCard.Title>
         <StaticCard.Actions>
-          <ManageColumnsButton columns={visibleColumns} setVisibleColumns={setVisibleColumns} />
+          <ManageColumnsButton columns={visibleColumns} setVisibleColumns={setVisibleColumns} storageKey={ARTIFACTS_TABLE_VISIBLE_COLUMNS_STORAGE_KEY} />
         </StaticCard.Actions>
       </StaticCard.Header>
       <StaticCard.Divider />

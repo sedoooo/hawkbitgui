@@ -6,13 +6,17 @@ import { DeployGroupTarget } from '@/entities/rollout';
 import Table from '@/app/components/table';
 import dayjs from 'dayjs';
 import TargetStatusCell from '@/app/components/target-status-cell';
+import { VisibleColumn } from '@/types/utils/visible-column';
+import { transformToColumnVisibility } from '@/utils/columns-visibility';
+import { RolloutDeployGroupTargetsTableColumnKey } from '@/stores/rollout-deploy-group-targets-table-store';
 
 export type RolloutDeployGroupTargetsTableProps = {
   deployGroupTargets: DeployGroupTarget[];
   isLoading?: boolean;
+  visibleColumns: Partial<Record<RolloutDeployGroupTargetsTableColumnKey, VisibleColumn>>;
 };
 
-export default function RolloutDeployGroupTargetsTable({ deployGroupTargets, isLoading = false }: RolloutDeployGroupTargetsTableProps) {
+export default function RolloutDeployGroupTargetsTable({ deployGroupTargets, isLoading = false, visibleColumns }: RolloutDeployGroupTargetsTableProps) {
   const columnHelper = createColumnHelper<DeployGroupTarget>();
 
   const columns = useMemo(() => {
@@ -52,5 +56,9 @@ export default function RolloutDeployGroupTargetsTable({ deployGroupTargets, isL
     ];
   }, [columnHelper]);
 
-  return <Table columns={columns} data={deployGroupTargets} isLoading={isLoading} />;
+  const columnVisibility = useMemo(() => {
+    return transformToColumnVisibility(visibleColumns);
+  }, [visibleColumns]);
+
+  return <Table columns={columns} columnVisibility={columnVisibility} data={deployGroupTargets} isLoading={isLoading} />;
 }

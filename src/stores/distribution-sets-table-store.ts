@@ -2,7 +2,9 @@ import { create } from 'zustand';
 import { Distribution, DistributionKey } from '@/entities';
 import { DEFAULT_PAGE_SIZE } from '@/utils/pagination';
 import { VisibleColumn } from '@/types/utils/visible-column';
-import { enableAllColumnsVisibility } from '@/utils/columns-visibility';
+import { enableAllColumnsVisibility, getColumnVisibilityStorageKey } from '@/utils/columns-visibility';
+
+export const DISTRIBUTION_SETS_TABLE_VISIBLE_COLUMNS_STORAGE_KEY = getColumnVisibilityStorageKey('distribution-sets-table');
 
 interface DistributionsSetsTableState {
   selectedDistribution?: Distribution;

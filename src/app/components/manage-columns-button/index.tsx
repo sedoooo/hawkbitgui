@@ -21,14 +21,15 @@ export interface ManageColumnsButtonProps {
 export default function ManageColumnsButton(props: ManageColumnsButtonProps) {
   const { columns, setVisibleColumns, storageKey } = props;
   const [open, setOpen] = useState(false);
-  const defaultsRef = useRef(columns);
+  const loadedStorageKeyRef = useRef<string | undefined>(undefined);
 
   useEffect(() => {
-    if (!storageKey) {
+    if (!storageKey || loadedStorageKeyRef.current === storageKey) {
       return;
     }
-    setVisibleColumns(loadColumnVisibility(storageKey, defaultsRef.current));
-  }, [storageKey, setVisibleColumns]);
+    loadedStorageKeyRef.current = storageKey;
+    setVisibleColumns(loadColumnVisibility(storageKey, columns));
+  }, [columns, storageKey, setVisibleColumns]);
 
   const updateVisibleColumns = (nextColumns: Record<string, VisibleColumn>) => {
     setVisibleColumns(nextColumns);

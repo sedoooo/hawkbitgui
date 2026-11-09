@@ -11,20 +11,22 @@ import XIcon from '@/app/components/icons/x-icon';
 import ThunderCloudIcon from '@/app/components/icons/thunder-cloud-icon';
 import CircleCheckMarkIcon from '@/app/components/icons/circle-check-mark-icon';
 import { Chip } from '@/app/components/chip';
+import { VisibleColumn } from '@/types/utils/visible-column';
+import { transformToColumnVisibility } from '@/utils/columns-visibility';
+import { TargetActionsTableColumnKey } from '@/stores/target-action-table-store';
 
 export type ActionHistoryTableProps = {
   isLoading?: boolean;
-  expanded?: boolean;
   onRowClick?: (targetAction: TargetAction) => void;
   targetActions?: TargetAction[];
   onCancelClick?: (targetAction: TargetAction) => void;
   onForceClick?: (targetAction: TargetAction) => void;
   onConfirmClick?: (targetAction: TargetAction) => void;
   onActionIdClick?: (targetAction: TargetAction) => void;
+  visibleColumns: Partial<Record<TargetActionsTableColumnKey, VisibleColumn>>;
 };
 
 export default function ActionHistoryTable({
-  expanded,
   onRowClick,
   targetActions = [],
   onForceClick,
@@ -32,64 +34,11 @@ export default function ActionHistoryTable({
   onCancelClick,
   isLoading,
   onActionIdClick,
+  visibleColumns,
 }: ActionHistoryTableProps) {
   const columnHelper = createColumnHelper<TargetAction>();
 
-  const shortColumns = useMemo(() => {
-    return [
-      columnHelper.accessor((row) => row.detailStatus ?? row.status, {
-        id: 'status',
-        header: 'Status',
-        cell: (info) => (
-          <div className={styles.statusCell}>
-            <Chip value={info.getValue()} colorClassName={info.getValue()} />
-          </div>
-        ),
-      }),
-      columnHelper.accessor('id', {
-        header: 'Action Id',
-        size: 100,
-        cell: (info) => (
-          <button className={styles.linkButton} onClick={() => onActionIdClick?.(info.row.original)}>
-            {info.getValue()}
-          </button>
-        ),
-      }),
-      columnHelper.accessor('rolloutName', {
-        header: 'Rollout Name',
-        cell: (info) => info.getValue(),
-      }),
-      columnHelper.accessor('type', {
-        header: 'Type',
-        cell: (info) => info.getValue(),
-      }),
-      // columnHelper.accessor('_links.distributionset.name', {
-      //   header: 'Distribution Set',
-      //   cell: (info) => info.getValue(),
-      // }),
-      columnHelper.display({
-        id: 'actions',
-        header: 'Actions',
-        cell: (info) => (
-          <div className={styles.actionButtons}>
-            {info.row.original.status === 'wait_for_confirmation' && (
-              <IconButton height={'30px'} width={'30px'} title='Confirm action' onClick={() => onConfirmClick?.(info.row.original)}>
-                <CircleCheckMarkIcon width={20} height={20} />
-              </IconButton>
-            )}
-            <IconButton height={'30px'} width={'30px'} onClick={() => onForceClick?.(info.row.original)}>
-              <ThunderCloudIcon />
-            </IconButton>
-            <IconButton height={'30px'} width={'30px'} onClick={() => onCancelClick?.(info.row.original)}>
-              <XIcon />
-            </IconButton>
-          </div>
-        ),
-      }),
-    ];
-  }, [columnHelper, onActionIdClick, onCancelClick, onForceClick, onConfirmClick]);
-
-  const fullColumns = useMemo(() => {
+  const columns = useMemo(() => {
     return [
       columnHelper.accessor((row) => row.detailStatus ?? row.status, {
         id: 'status',
@@ -159,10 +108,15 @@ export default function ActionHistoryTable({
     ];
   }, [columnHelper, onActionIdClick, onCancelClick, onForceClick, onConfirmClick]);
 
+  const columnVisibility = useMemo(() => {
+    return transformToColumnVisibility(visibleColumns);
+  }, [visibleColumns]);
+
   return (
     <>
       <Table
-        columns={expanded ? fullColumns : shortColumns}
+        columns={columns}
+        columnVisibility={columnVisibility}
         data={targetActions}
         draggable={false}
         selectable={false}
