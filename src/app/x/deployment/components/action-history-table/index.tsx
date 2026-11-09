@@ -17,11 +17,9 @@ import { transformToColumnVisibility } from '@/utils/columns-visibility';
 import { EMPTY_DISPLAY_VALUE } from '@/utils/table-display';
 import { TargetActionsTableColumnKey } from '@/stores/target-action-table-store';
 import { formatActionStatusLabel } from '@/utils/action-progress';
+import type { ActionStatusOverride } from '@/utils/action-status-overrides';
 
-export type ActionStatusOverride = {
-  status?: string;
-  detailStatus?: string;
-};
+export type { ActionStatusOverride } from '@/utils/action-status-overrides';
 
 export type ActionHistoryTableProps = {
   isLoading?: boolean;

@@ -68,7 +68,8 @@ axiosInstance.interceptors.response.use(
   },
   (error) => {
     const status = error.response?.status;
-    const errorMessage = error.response?.data?.message ?? error.message ?? 'Request failed';
+    const responseData = error.response?.data;
+    const errorMessage = responseData?.message ?? error.message ?? 'Request failed';
 
     finishRequestLog(error.config, {
       state: 'error',
@@ -82,7 +83,18 @@ axiosInstance.interceptors.response.use(
       signOutOnUnauthorized();
     }
     if (error.response) {
-      return Promise.reject(error.response.data);
+      // hawkBit returns an empty body for some errors (e.g. 404 "not waiting
+      // for confirmation"). Preserve the HTTP status so callers can react to
+      // the real outcome instead of showing a generic message.
+      if (responseData && typeof responseData === 'object' && !Array.isArray(responseData)) {
+        return Promise.reject({ ...responseData, httpStatus: status });
+      }
+      return Promise.reject({
+        exceptionClass: 'HttpError',
+        errorCode: status ? `httpStatus.${status}` : 'UNKNOWN_ERROR',
+        httpStatus: status,
+        message: typeof responseData === 'string' && responseData.trim() !== '' ? responseData : error.message || 'Request failed',
+      });
     }
 
     return Promise.reject({

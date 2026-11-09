@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import ActionHistoryTable, { ActionStatusOverride } from '@/app/x/deployment/components/action-history-table';
+import ActionHistoryTable from '@/app/x/deployment/components/action-history-table';
 import ActionProgressPanel from '@/app/x/deployment/components/action-progress-panel';
 import { useTargetActionsTableStore } from '@/stores/target-action-table-store';
 import { TargetAction } from '@/entities/target-action';
@@ -17,6 +17,8 @@ import { EMPTY_LIST_FILTERS, filterRowsByListFilters, getDistinctTypeOptions, ty
 import Button from '@/app/components/button';
 import { toast } from 'react-hot-toast';
 import { isErrorWithMessage } from '@/utils/is-error-with-message';
+import { type ActionStatusOverrides, pruneActionStatusOverrides, removeActionStatusOverride, setActionStatusOverride } from '@/utils/action-status-overrides';
+import { describeConfirmFailure, getHttpStatus, summarizeBulkConfirm, formatBulkConfirmSummary } from '@/utils/action-confirmation';
 
 export default function ActionHistoryTableContainer() {
   const targetActions = useTargetActionsTableStore((state) => state.actions);
@@ -31,17 +33,16 @@ export default function ActionHistoryTableContainer() {
 
   const [listFilters, setListFilters] = useState<ListFilterState>(EMPTY_LIST_FILTERS);
   const [expandedActionId, setExpandedActionId] = useState<number | string | undefined>(undefined);
-  const [statusOverrides, setStatusOverrides] = useState<Record<string, ActionStatusOverride>>({});
+  const [statusOverrides, setStatusOverrides] = useState<ActionStatusOverrides>({});
 
   const handleToggleExpand = (targetAction: TargetAction) => {
     setExpandedActionId((current) => (current !== undefined && String(current) === String(targetAction.id) ? undefined : targetAction.id));
   };
 
+  // Live status from an expanded panel is keyed by action id, so expanding one
+  // row can never change the status shown for another row.
   const handleStatusUpdate = useCallback((actionId: number | string, status: string) => {
-    setStatusOverrides((current) => ({
-      ...current,
-      [String(actionId)]: { status, detailStatus: status },
-    }));
+    setStatusOverrides((current) => setActionStatusOverride(current, actionId, status));
   }, []);
 
   const typeOptions = useMemo(() => {
@@ -88,6 +89,16 @@ export default function ActionHistoryTableContainer() {
     setSelectionResetKey((key) => key + 1);
   };
 
+  const refreshActionState = useCallback(async () => {
+    if (!selectedTargetId) {
+      return undefined;
+    }
+    await fetchTargetActions(selectedTargetId);
+    return useTargetActionsTableStore.getState().actions;
+  }, [fetchTargetActions, selectedTargetId]);
+
+  const findAction = (actions: TargetAction[] | undefined, actionId: number | string) => actions?.find((action) => String(action.id) === String(actionId));
+
   const handleActionIdClick = (targetAction: TargetAction) => {
     if (!selectedTargetId) {
       console.warn('No target ID selected. Skipping action history fetch.');
@@ -101,12 +112,16 @@ export default function ActionHistoryTableContainer() {
     confirmCancelDialog.open(targetAction, async () => {
       if (!selectedTargetId) return;
       setIsCancelling(true);
+      setStatusOverrides((current) => removeActionStatusOverride(current, targetAction.id));
       try {
         await TargetsService.cancelAction(selectedTargetId, targetAction.id);
-        await fetchTargetActions(selectedTargetId);
+        await refreshActionState();
+        setStatusOverrides((current) => removeActionStatusOverride(current, targetAction.id));
         clearSelection();
         toast.success('Action cancelled');
       } catch (e) {
+        await refreshActionState();
+        setStatusOverrides((current) => removeActionStatusOverride(current, targetAction.id));
         handleErrorWithToast(e, 'Failed to cancel action');
       } finally {
         setIsCancelling(false);
@@ -118,13 +133,29 @@ export default function ActionHistoryTableContainer() {
     confirmActionDialog.open(targetAction, async () => {
       if (!selectedTargetId) return;
       setIsConfirming(true);
+      // Drop any live override first so the row cannot keep showing a stale
+      // "waiting" state after the confirmation has been processed.
+      setStatusOverrides((current) => removeActionStatusOverride(current, targetAction.id));
       try {
         await TargetsService.confirmAction(selectedTargetId, targetAction.id);
-        await fetchTargetActions(selectedTargetId);
+        await refreshActionState();
+        setStatusOverrides((current) => removeActionStatusOverride(current, targetAction.id));
         clearSelection();
         toast.success('Action confirmed');
       } catch (e) {
-        handleErrorWithToast(e, 'Failed to confirm action (it may no longer be waiting for confirmation)');
+        // A second/duplicate confirmation returns 400/404/409 (often with an
+        // empty body). Refresh the real state and report it instead of a
+        // generic failure.
+        const actions = await refreshActionState();
+        setStatusOverrides((current) => removeActionStatusOverride(current, targetAction.id));
+        const currentAction = findAction(actions, targetAction.id);
+        toast.error(
+          describeConfirmFailure({
+            httpStatus: getHttpStatus(e),
+            message: isErrorWithMessage(e) ? e.message : undefined,
+            currentStatus: currentAction?.detailStatus ?? currentAction?.status,
+          })
+        );
       } finally {
         setIsConfirming(false);
       }
@@ -140,21 +171,38 @@ export default function ActionHistoryTableContainer() {
     confirmBulkDialog.open(confirmableSelectedActions, async () => {
       if (!selectedTargetId) return;
       setIsBulkConfirming(true);
+      confirmableSelectedActions.forEach((targetAction) => {
+        setStatusOverrides((current) => removeActionStatusOverride(current, targetAction.id));
+      });
       try {
         const results = await Promise.allSettled(
           confirmableSelectedActions.map((targetAction) => TargetsService.confirmAction(selectedTargetId, targetAction.id))
         );
-        const failed = results.filter((result): result is PromiseRejectedResult => result.status === 'rejected');
-        const succeeded = results.length - failed.length;
+        const actions = await refreshActionState();
+        confirmableSelectedActions.forEach((targetAction) => {
+          setStatusOverrides((current) => removeActionStatusOverride(current, targetAction.id));
+        });
 
-        if (failed.length === 0) {
-          toast.success(`Confirmed ${succeeded} action(s)`);
+        const outcomes = results.map((result, index) => {
+          const confirmedAction = findAction(actions, confirmableSelectedActions[index].id);
+          if (result.status === 'fulfilled') {
+            return { fulfilled: true };
+          }
+          return {
+            fulfilled: false,
+            httpStatus: getHttpStatus(result.reason),
+            message: isErrorWithMessage(result.reason) ? result.reason.message : undefined,
+            currentStatus: confirmedAction?.detailStatus ?? confirmedAction?.status,
+          };
+        });
+
+        const summary = summarizeBulkConfirm(outcomes);
+        if (summary.failed === 0 && summary.notWaiting === 0) {
+          toast.success(formatBulkConfirmSummary(summary));
         } else {
-          const reason = isErrorWithMessage(failed[0].reason) ? ` ${failed[0].reason.message}` : '';
-          toast.error(`Confirmed ${succeeded} of ${results.length} action(s); ${failed.length} failed.${reason}`);
+          toast(formatBulkConfirmSummary(summary));
         }
 
-        await fetchTargetActions(selectedTargetId);
         clearSelection();
       } catch (e) {
         handleErrorWithToast(e, 'Failed to confirm selected actions');
@@ -168,12 +216,16 @@ export default function ActionHistoryTableContainer() {
     confirmForceDialog.open(targetAction, async () => {
       if (!selectedTargetId) return;
       setIsForcing(true);
+      setStatusOverrides((current) => removeActionStatusOverride(current, targetAction.id));
       try {
         await TargetsService.targetForceAction(selectedTargetId, targetAction.id);
-        await fetchTargetActions(selectedTargetId);
+        await refreshActionState();
+        setStatusOverrides((current) => removeActionStatusOverride(current, targetAction.id));
         clearSelection();
         toast.success('Action forced');
       } catch (e) {
+        await refreshActionState();
+        setStatusOverrides((current) => removeActionStatusOverride(current, targetAction.id));
         handleErrorWithToast(e, 'Failed to force action');
       } finally {
         setIsForcing(false);
@@ -185,6 +237,11 @@ export default function ActionHistoryTableContainer() {
     setExpandedActionId(undefined);
     setStatusOverrides({});
   }, [selectedTargetId]);
+
+  // Keep live overrides scoped to actions that are still present and active.
+  useEffect(() => {
+    setStatusOverrides((current) => pruneActionStatusOverrides(current, targetActions));
+  }, [targetActions]);
 
   useEffect(() => {
     if (!selectedTargetId) {
@@ -234,7 +291,14 @@ export default function ActionHistoryTableContainer() {
           statusOverrides={statusOverrides}
           renderExpandedContent={
             selectedTargetId
-              ? (targetAction) => <ActionProgressPanel action={targetAction} controllerId={selectedTargetId} onStatusUpdate={handleStatusUpdate} />
+              ? (targetAction) => (
+                  <ActionProgressPanel
+                    key={`${selectedTargetId}:${targetAction.id}`}
+                    action={targetAction}
+                    controllerId={selectedTargetId}
+                    onStatusUpdate={handleStatusUpdate}
+                  />
+                )
               : undefined
           }
         />

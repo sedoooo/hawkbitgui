@@ -22,6 +22,7 @@ import { toast } from 'react-hot-toast';
 import { Modal } from '@/app/components/modal';
 import { ActionButtons } from '@/app/components/action-buttons';
 import { findTwinDistributionSet } from '@/utils/twin-distribution-set';
+import { isAutoConfirmAssignmentsEnabled } from '@/utils/auto-confirm';
 
 const mapScheduleFormDataToAssignConfig = (id: string | number, data?: ScheduleFormData): AssignConfig => {
   if (!data) {
@@ -57,10 +58,13 @@ const resolveActionTargetId = (action: AssignmentAction, fallback?: string): str
   return segment ? decodeURIComponent(segment) : fallback;
 };
 
-// hawkBit user confirmation flow is enabled. When an assignment is created it stays in
-// `wait_for_confirmation`; confirm those actions immediately since the user already
-// confirmed the assignment in the UI dialog, so the GUI cannot leave a stuck action.
+// Optional auto-confirm for assignments. Off by default: silently confirming an
+// action races the manual Confirm button and makes it look like confirmation
+// failed. Opt in with NEXT_PUBLIC_HAWKBITGUI_AUTO_CONFIRM=true at build time.
 const confirmPendingAssignmentActions = async (actions: AssignmentAction[], fallbackTargetIds: (string | undefined)[]) => {
+  if (!isAutoConfirmAssignmentsEnabled()) {
+    return;
+  }
   for (const [index, action] of actions.entries()) {
     if (action.status !== 'wait_for_confirmation') {
       continue;
