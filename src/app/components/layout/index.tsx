@@ -14,6 +14,7 @@ import WebIcon from '@/app/components/icons/web-icon';
 import GearIcon from '@/app/components/icons/gear-icon';
 import { signOut, useSession } from 'next-auth/react';
 import { AppRoutes } from '@/utils/routes';
+import RequestStatusWindow from '../request-status-window';
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -47,6 +48,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             <NavItem href={item.href} key={i} icon={item.icon} expanded={sidebarOpen} label={item.label} isActive={item.href === pathname} />
           ))}
         </nav>
+
+        <RequestStatusWindow />
 
         <div className={styles.logout}>
           <NavItem href={AppRoutes.login} label='Logout' icon={LogoutIcon} expanded={sidebarOpen} onClick={() => signOut({ callbackUrl: AppRoutes.login })} />

@@ -1,0 +1,145 @@
+@use 'src/app/styles/variables' as *;
+
+.window {
+  margin: 0 12px 12px;
+  padding: 10px;
+  border: 1px solid #e2e4e8;
+  border-radius: 12px;
+  background: #f8f9fa;
+  color: $primary-text-color;
+  font-size: 11px;
+  text-align: left;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+}
+
+.titleRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.title {
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.compactBar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.compactText {
+  font-weight: 600;
+  margin-right: auto;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.latest {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.method {
+  font-weight: 700;
+  font-family: monospace;
+}
+
+.status {
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 6px;
+  color: #fff;
+}
+
+.statusDot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.success {
+  background: #2f7d32;
+}
+
+.error {
+  background: #b92626;
+}
+
+.pending {
+  background: #dfb322;
+}
+
+.duration,
+.historyDuration {
+  margin-left: auto;
+  color: #5b6169;
+  white-space: nowrap;
+}
+
+.path {
+  font-family: monospace;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.meta {
+  color: #5b6169;
+}
+
+.summary {
+  color: #3d4248;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.empty {
+  margin-top: 8px;
+  color: #5b6169;
+}
+
+.history {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #e2e4e8;
+}
+
+.historyRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.historyPath {
+  min-width: 0;
+  flex: 1;
+  font-family: monospace;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
