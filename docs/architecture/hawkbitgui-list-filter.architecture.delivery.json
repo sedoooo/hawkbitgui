@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "1b6c26c4-3ce2-41d4-bfb9-bf5ec66cc0fc",
+  "status": "current",
+  "command": "deliver",
+  "type": "architecture",
+  "input": "/opt/hawkbitgui/src/docs/architecture/hawkbitgui-list-filter.architecture.json",
+  "output": "/opt/hawkbitgui/src/docs/architecture/hawkbitgui-list-filter.architecture.html",
+  "specification": {
+    "sha256": "652942bd4bed9e23ed768da5c7f1398b9670b3355ef209ecdc8471b2d3f95ea0",
+    "bytes": 6602
+  },
+  "artifact": {
+    "sha256": "07dce471ebd22cb914d328b40764d5ecaee7da90a3a683dc5f670ad2761dcf94",
+    "bytes": 855888
+  }
+}

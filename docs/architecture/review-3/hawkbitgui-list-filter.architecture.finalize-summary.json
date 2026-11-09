@@ -1,0 +1,131 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "architecture",
+  "quality": "showcase",
+  "specification": {
+    "path": "/opt/hawkbitgui/src/docs/architecture/hawkbitgui-list-filter.architecture.json",
+    "sha256": "652942bd4bed9e23ed768da5c7f1398b9670b3355ef209ecdc8471b2d3f95ea0",
+    "bytes": 6602
+  },
+  "artifact": {
+    "path": "/opt/hawkbitgui/src/docs/architecture/hawkbitgui-list-filter.architecture.html",
+    "sha256": "07dce471ebd22cb914d328b40764d5ecaee7da90a3a683dc5f670ad2761dcf94",
+    "bytes": 855888
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "pass"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "/opt/hawkbitgui/src/docs/architecture/review-3/hawkbitgui-list-filter.architecture.finalize.json",
+    "summaryReceipt": "/opt/hawkbitgui/src/docs/architecture/review-3/hawkbitgui-list-filter.architecture.finalize-summary.json",
+    "browserCheckReceipt": "/opt/hawkbitgui/src/docs/architecture/review-3/hawkbitgui-list-filter.architecture.browser-check.json"
+  },
+  "update": {
+    "status": "current",
+    "installedVersion": "3.2.0",
+    "availableVersion": "3.2.0",
+    "releaseNotes": null,
+    "checkedAt": "2026-11-09T11:16:45.734Z",
+    "source": "cache",
+    "noticeRequired": false,
+    "noticeText": null
+  },
+  "visualReview": "not-requested",
+  "durationMs": 2998,
+  "browserCheck": {
+    "requested": true,
+    "ran": true
+  },
+  "visualReviewRecommendation": {
+    "action": "inspect-route-readability",
+    "signals": {
+      "resolvedCrossovers": 2,
+      "routesOverSuggestedStretch": 1
+    },
+    "reason": "Automated gates passed, but crossings or detours still need perceptual review before claiming visual quality.",
+    "affectedRoutes": {
+      "crossings": [
+        {
+          "left": {
+            "id": "route-distributions",
+            "from": "nextui",
+            "to": "disttab",
+            "label": "route",
+            "collectionIndex": 2,
+            "artifactIndex": 3
+          },
+          "right": {
+            "id": "route-deployment",
+            "from": "nextui",
+            "to": "deploytab",
+            "label": "route",
+            "collectionIndex": 3,
+            "artifactIndex": 4
+          },
+          "point": [
+            211.5,
+            334
+          ],
+          "sharedNode": "nextui"
+        },
+        {
+          "left": {
+            "id": "distributions-renders-filter",
+            "from": "disttab",
+            "to": "filterbar",
+            "label": "renders",
+            "collectionIndex": 5,
+            "artifactIndex": 6
+          },
+          "right": {
+            "id": "deployment-renders-filter",
+            "from": "deploytab",
+            "to": "filterbar",
+            "label": "renders",
+            "collectionIndex": 6,
+            "artifactIndex": 7
+          },
+          "point": [
+            483.5,
+            336
+          ],
+          "sharedNode": "filterbar"
+        }
+      ],
+      "detours": [
+        {
+          "relationship": {
+            "id": "operator-opens-ui",
+            "from": "operator",
+            "to": "nextui",
+            "label": "opens",
+            "collectionIndex": 0,
+            "artifactIndex": 1
+          },
+          "bends": 2,
+          "stretch": 1.427
+        }
+      ],
+      "truncated": false
+    },
+    "hints": [
+      "nextui has 3 relationships facing its right side, which fits 2 ports: make that side at least 60px, or move some of those neighbours so they face another side of nextui.",
+      "nextui → disttab and nextui → deploytab cross next to nextui: move node disttab or deploytab so the two reach nextui from different sides (for example one level with it, one directly above or below it).",
+      "disttab → filterbar and deploytab → filterbar cross next to filterbar: move node disttab or deploytab so the two reach filterbar from different sides (for example one level with it, one directly above or below it).",
+      "operator → nextui needs 2 bends: move node operator or nextui so they share a row or column with matching centers, or sit diagonally with a clear corner."
+    ],
+    "repair": "Trace these relationships at the desktop viewport. For Architecture, use references/architecture-layout-repair.md: reflow a blocked main path or tangled connected scene, and repair an isolated defect locally only when the surrounding composition is accepted. Preserve all semantic content and user-fixed geometry. Rerun finalize once after the edit."
+  }
+}

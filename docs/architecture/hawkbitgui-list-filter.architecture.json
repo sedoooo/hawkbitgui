@@ -1,0 +1,173 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "HawkbitGUI list and filter architecture",
+    "subtitle": "Upload, Distributions and Deployment tables share one filter bar and talk to hawkBit over HTTP",
+    "locale": "en",
+    "output": "docs/architecture/hawkbitgui-list-filter.architecture.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/sedoooo/hawkbitgui.git",
+      "provider": "github",
+      "link_mode": "web",
+      "revision": "1b07c3166d2cd3ccceff64b260f19c62266d2362"
+    }
+  },
+  "components": [
+    { "id": "operator", "type": "external", "label": "Operator", "sublabel": "Desktop browser", "pos": [20, 252], "size": [100, 56] },
+    {
+      "id": "nextui",
+      "type": "frontend",
+      "label": "HawkbitGUI UI",
+      "sublabel": "Next.js app router",
+      "tag": "client components",
+      "pos": [140, 252],
+      "size": [115, 56],
+      "sources": [
+        { "path": "src/app/x/upload/page.tsx", "line": 12, "end_line": 39 },
+        { "path": "src/app/x/distributions/page.tsx", "line": 7, "end_line": 13 },
+        { "path": "src/app/x/deployment/page.tsx", "line": 4, "end_line": 12 }
+      ]
+    },
+    {
+      "id": "uploadtab",
+      "type": "frontend",
+      "label": "Upload tab",
+      "sublabel": "Software modules · artifacts",
+      "pos": [275, 120],
+      "size": [135, 60],
+      "sources": [
+        { "path": "src/app/x/upload/containers/artifacts-table-container/index.tsx", "line": 32, "end_line": 40 }
+      ]
+    },
+    {
+      "id": "disttab",
+      "type": "frontend",
+      "label": "Distributions tab",
+      "sublabel": "Distribution sets + types",
+      "pos": [275, 250],
+      "size": [135, 60],
+      "sources": [
+        { "path": "src/app/x/distributions/containers/distribution-sets-table-container/index.tsx", "line": 21, "end_line": 30 }
+      ]
+    },
+    {
+      "id": "deploytab",
+      "type": "frontend",
+      "label": "Deployment tab",
+      "sublabel": "Targets · distributions · actions",
+      "pos": [275, 380],
+      "size": [135, 60],
+      "sources": [
+        { "path": "src/app/x/deployment/containers/target-table-container/index.tsx", "line": 31, "end_line": 44 }
+      ]
+    },
+    {
+      "id": "filterbar",
+      "type": "frontend",
+      "label": "List filter bar",
+      "sublabel": "Type select · from/to dates",
+      "tag": "ListFilterBar",
+      "pos": [430, 248],
+      "size": [135, 64],
+      "sources": [
+        { "path": "src/app/components/list-filter-bar/index.tsx", "line": 10, "end_line": 33 }
+      ]
+    },
+    {
+      "id": "filterutils",
+      "type": "backend",
+      "label": "Filter utilities",
+      "sublabel": "RSQL builder · client date filter",
+      "pos": [585, 248],
+      "size": [135, 64],
+      "sources": [
+        { "path": "src/utils/list-filters.ts", "line": 96, "end_line": 123 },
+        { "path": "src/utils/distribution-set.ts", "line": 1, "end_line": 30 }
+      ]
+    },
+    {
+      "id": "stores",
+      "type": "backend",
+      "label": "Zustand table stores",
+      "sublabel": "listFilters · paging · sorting",
+      "pos": [740, 248],
+      "size": [135, 64],
+      "sources": [
+        { "path": "src/stores/targets-table-store.ts", "line": 137, "end_line": 144 },
+        { "path": "src/stores/distributions-table-store.ts", "line": 140, "end_line": 146 },
+        { "path": "src/stores/target-action-table-store.ts", "line": 13, "end_line": 31 }
+      ]
+    },
+    {
+      "id": "services",
+      "type": "backend",
+      "label": "hawkBit service layer",
+      "sublabel": "targets · DS · modules",
+      "tag": "axios /api/hawkbit",
+      "pos": [895, 248],
+      "size": [135, 64],
+      "sources": [
+        { "path": "src/services/targets-service.ts", "line": 160, "end_line": 177 },
+        { "path": "src/services/distribution-sets-service.ts", "line": 25, "end_line": 42 },
+        { "path": "src/lib/axios.ts", "line": 41, "end_line": 42 }
+      ]
+    },
+    { "id": "hawkbit", "type": "external", "label": "hawkBit Management API", "sublabel": "HTTP :8080 · tenant DEFAULT", "pos": [1070, 252], "size": [140, 64] }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "HawkbitGUI — Next.js client",
+      "wraps": ["nextui", "uploadtab", "disttab", "deploytab", "filterbar", "filterutils", "stores", "services"]
+    }
+  ],
+  "connections": [
+    { "id": "operator-opens-ui", "from": "operator", "to": "nextui", "label": "opens", "variant": "emphasis" },
+    { "id": "route-upload", "from": "nextui", "to": "uploadtab", "label": "route" },
+    { "id": "route-distributions", "from": "nextui", "to": "disttab", "label": "route" },
+    { "id": "route-deployment", "from": "nextui", "to": "deploytab", "label": "route" },
+    { "id": "upload-renders-filter", "from": "uploadtab", "to": "filterbar", "label": "renders" },
+    { "id": "distributions-renders-filter", "from": "disttab", "to": "filterbar", "label": "renders" },
+    { "id": "deployment-renders-filter", "from": "deploytab", "to": "filterbar", "label": "renders" },
+    { "id": "filter-state", "from": "filterbar", "to": "filterutils", "label": "type + date", "variant": "emphasis" },
+    { "id": "query-build", "from": "filterutils", "to": "stores", "label": "q= RSQL" },
+    { "id": "store-fetch", "from": "stores", "to": "services", "label": "fetch" },
+    { "id": "rest-request", "from": "services", "to": "hawkbit", "label": "REST /rest/v1", "variant": "security" }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Server-side filters",
+      "items": [
+        "Distribution sets, Distributions, Targets and Software modules build an RSQL q= filter",
+        "The date range is widened to the start and end of the chosen days"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Client-side filters",
+      "items": [
+        "Upload artifacts and Deployment action history filter already-loaded rows in memory",
+        "Action history offers both action: and ds: type options"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "Distribution set type fix",
+      "items": [
+        "Action history queries the global /actions feed filtered by target.controllerId",
+        "The distribution set id is parsed from _links.distributionset.href and its type resolved from a cached list"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Transport",
+      "items": [
+        "The browser calls /api/hawkbit, which proxies to the hawkBit Management API over plain LAN HTTP",
+        "No TLS is configured for the local deployment"
+      ]
+    }
+  ]
+}
