@@ -1,6 +1,11 @@
 @use 'src/app/styles/variables' as *;
 
 .window {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  box-sizing: border-box;
   margin: 0 12px 12px;
   padding: 10px;
   border: 1px solid #e2e4e8;
@@ -9,6 +14,74 @@
   color: $primary-text-color;
   font-size: 11px;
   text-align: left;
+  overflow: hidden;
+}
+
+.resizing {
+  user-select: none;
+}
+
+.body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.copyButton {
+  all: unset;
+  box-sizing: border-box;
+  cursor: pointer;
+  padding: 2px 8px;
+  border-radius: 8px;
+  border: 1px solid #d0d3d8;
+  background: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  color: $primary-text-color;
+
+  &:hover {
+    background: #eef0f3;
+  }
+
+  &:disabled {
+    cursor: default;
+    opacity: 0.5;
+  }
+}
+
+.copied {
+  background: #2f7d32;
+  border-color: #2f7d32;
+  color: #fff;
+}
+
+.resizeHandle {
+  position: absolute;
+  right: 2px;
+  bottom: 2px;
+  width: 14px;
+  height: 14px;
+  cursor: nwse-resize;
+  border-right: 2px solid #9aa0a8;
+  border-bottom: 2px solid #9aa0a8;
+  border-bottom-right-radius: 4px;
+
+  &::before {
+    content: '';
+    position: absolute;
+    right: 3px;
+    bottom: 3px;
+    width: 8px;
+    height: 8px;
+    border-right: 2px solid #c2c6cc;
+    border-bottom: 2px solid #c2c6cc;
+  }
 }
 
 .header {
