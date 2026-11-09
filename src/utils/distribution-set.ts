@@ -1,4 +1,13 @@
+import type { Distribution } from '@/entities/distribution';
 import type { TargetAction } from '@/entities/target-action';
+
+export function unwrapCreatedDistributionSet(response: Distribution | Distribution[]): Distribution {
+  const created = Array.isArray(response) ? response[0] : response;
+  if (!created) {
+    throw new Error('hawkBit did not return the created distribution set');
+  }
+  return created;
+}
 
 export function parseDistributionSetId(href?: string | null): number | undefined {
   if (!href) {

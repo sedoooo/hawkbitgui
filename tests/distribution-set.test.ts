@@ -1,6 +1,23 @@
 import { describe, expect, test } from 'bun:test';
+import type { Distribution } from '../src/entities/distribution';
 import type { TargetAction } from '../src/entities/target-action';
-import { applyDistributionSetTypes, getActionDistributionSetId, parseDistributionSetId } from '../src/utils/distribution-set';
+import { applyDistributionSetTypes, getActionDistributionSetId, parseDistributionSetId, unwrapCreatedDistributionSet } from '../src/utils/distribution-set';
+
+describe('unwrapCreatedDistributionSet', () => {
+  const distribution = { id: 123, name: 'gw-stm32mp1-6.1.17-twin' } as Distribution;
+
+  test('unwraps the array hawkBit returns for a create request', () => {
+    expect(unwrapCreatedDistributionSet([distribution])).toBe(distribution);
+  });
+
+  test('accepts a single object response', () => {
+    expect(unwrapCreatedDistributionSet(distribution)).toBe(distribution);
+  });
+
+  test('throws instead of returning an undefined id', () => {
+    expect(() => unwrapCreatedDistributionSet([])).toThrow(/did not return the created distribution set/);
+  });
+});
 
 describe('parseDistributionSetId', () => {
   test('extracts the distribution set id from a hawkBit link', () => {

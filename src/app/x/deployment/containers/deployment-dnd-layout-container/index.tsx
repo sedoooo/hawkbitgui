@@ -21,8 +21,9 @@ import { buildAssignmentFeedback } from '@/utils/assignment-feedback';
 import { toast } from 'react-hot-toast';
 import { Modal } from '@/app/components/modal';
 import { ActionButtons } from '@/app/components/action-buttons';
-import { findTwinDistributionSet } from '@/utils/twin-distribution-set';
+import { buildTwinDistributionSetInput, findTwinDistributionSet, getDistributionModuleIds } from '@/utils/twin-distribution-set';
 import { isAutoConfirmAssignmentsEnabled } from '@/utils/auto-confirm';
+import type { CreateDistributionSetInput } from '@/services/distribution-sets-services.types';
 
 const mapScheduleFormDataToAssignConfig = (id: string | number, data?: ScheduleFormData): AssignConfig => {
   if (!data) {
@@ -86,7 +87,7 @@ type ForceReinstallState = {
   targetIds: string[];
   targetLabel: string;
   twins: { source: Distribution; twin: Distribution }[];
-  missing: Distribution[];
+  missing: { source: Distribution; proposed: CreateDistributionSetInput }[];
 };
 
 export default function DeploymentDndLayoutContainer() {
@@ -243,44 +244,59 @@ export default function DeploymentDndLayoutContainer() {
       const { distributionSets } = await DistributionSetsService.fetchDistributionSets(undefined, { offset: 0, limit: 1000 });
       const resolvedDistributions = distributions.map((distribution) => distributionSets.find((candidate) => candidate.id === distribution.id) ?? distribution);
       const twins: { source: Distribution; twin: Distribution }[] = [];
-      const missing: Distribution[] = [];
+      const missing: { source: Distribution; proposed: CreateDistributionSetInput }[] = [];
 
-      resolvedDistributions.forEach((distribution) => {
+      for (const distribution of resolvedDistributions) {
         const twin = findTwinDistributionSet(distribution, distributionSets);
         if (twin) {
           twins.push({ source: distribution, twin });
-        } else {
-          missing.push(distribution);
+          continue;
         }
-      });
+
+        let source = distribution;
+        if (getDistributionModuleIds(source).length === 0) {
+          const modules = await DistributionSetsService.getAssignedSoftwareModules(source.id);
+          source = { ...source, modules };
+        }
+        missing.push({ source, proposed: buildTwinDistributionSetInput(source, distributionSets) });
+      }
 
       setForceReinstallState({ targetIds, targetLabel, twins, missing });
     } catch (error) {
-      handleErrorWithToast(error, 'Failed to look up a byte-identical twin distribution set');
+      handleErrorWithToast(error, 'Failed to look up or prepare a byte-identical twin distribution set');
     }
   }
 
   async function handleForceReinstall() {
-    if (!forceReinstallState || forceReinstallState.twins.length === 0 || forceReinstallState.missing.length > 0) {
+    if (!forceReinstallState || (forceReinstallState.twins.length === 0 && forceReinstallState.missing.length === 0)) {
       return;
     }
 
     setIsForceReinstalling(true);
+    const createdTwins: Distribution[] = [];
     try {
-      const assignedActions: AssignmentAction[] = [];
+      const twinsToAssign = forceReinstallState.twins.map(({ twin }) => twin);
 
-      for (const { twin } of forceReinstallState.twins) {
+      for (const { proposed } of forceReinstallState.missing) {
+        const createdTwin = await DistributionSetsService.createDistributionSet([proposed]);
+        createdTwins.push(createdTwin);
+        twinsToAssign.push(createdTwin);
+      }
+
+      const assignedActions: AssignmentAction[] = [];
+      const actionFallbackTargetIds: (string | undefined)[] = [];
+
+      for (const twin of twinsToAssign) {
         const result = await DistributionSetsService.assignTargetsToDistributionSet({
           distributionId: twin.id,
           targetConfigs: forceReinstallState.targetIds.map((targetId) => ({ id: targetId, type: 'forced', confirmationRequired: false })),
         });
-        assignedActions.push(...(result.assignedActions ?? []));
+        const actions = result.assignedActions ?? [];
+        assignedActions.push(...actions);
+        actionFallbackTargetIds.push(...actions.map((_, index) => forceReinstallState.targetIds[index % forceReinstallState.targetIds.length]));
       }
 
-      await confirmPendingAssignmentActions(
-        assignedActions,
-        assignedActions.map(() => forceReinstallState.targetIds[0])
-      );
+      await confirmPendingAssignmentActions(assignedActions, actionFallbackTargetIds);
 
       const firstTargetId = forceReinstallState.targetIds[0];
       let actionSummary = 'no actions reported';
@@ -292,8 +308,10 @@ export default function DeploymentDndLayoutContainer() {
         actionSummary = assignedActions.map((action) => `#${action.id} ${actionById.get(action.id)?.status ?? action.status ?? 'pending'}`).join(', ');
       }
 
-      const twinSummary = forceReinstallState.twins.map(({ twin }) => `${twin.name} (id ${twin.id})`).join(', ');
-      toast.success(`Forced reinstall started with twin ${twinSummary}. Actions: ${actionSummary}`);
+      const twinSummary = twinsToAssign.map((twin) => `${twin.name} (id ${twin.id})`).join(', ');
+      const createdSummary =
+        createdTwins.length > 0 ? `Created twin ${createdTwins.map((twin) => `${twin.name} (id ${twin.id}, version ${twin.version})`).join(', ')}. ` : '';
+      toast.success(`${createdSummary}Forced reinstall started with ${twinSummary}. Actions: ${actionSummary}`);
 
       if (firstTargetId) {
         setSelectedTargetId(firstTargetId);
@@ -301,7 +319,11 @@ export default function DeploymentDndLayoutContainer() {
       }
       setForceReinstallState(null);
     } catch (error) {
-      handleErrorWithToast(error, 'Failed to start the forced reinstall');
+      const createdSummary =
+        createdTwins.length > 0
+          ? `Created twin ${createdTwins.map((twin) => `${twin.name} (id ${twin.id})`).join(', ')} but failed to start the forced reinstall`
+          : 'Failed to start the forced reinstall';
+      handleErrorWithToast(error, createdSummary);
     } finally {
       setIsForceReinstalling(false);
     }
@@ -357,11 +379,16 @@ export default function DeploymentDndLayoutContainer() {
               </p>
             )}
             {forceReinstallState && forceReinstallState.missing.length > 0 && (
-              <p>
-                No byte-identical twin distribution set was found for <b>{forceReinstallState.missing.map((distribution) => distribution.name).join(', ')}</b>.
-                No distribution set was created automatically. Create a twin with the same software modules and a new name/version, then assign it forced;
-                alternatively unassign the current distribution set first and assign again.
-              </p>
+              <>
+                <p>
+                  No byte-identical twin distribution set exists for <b>{forceReinstallState.missing.map(({ source }) => source.name).join(', ')}</b> yet.
+                </p>
+                <p>
+                  On confirm, a new byte-identical twin will be created automatically by reusing the same software modules and distribution set type:{' '}
+                  <b>{forceReinstallState.missing.map(({ proposed }) => `${proposed.name} (version ${proposed.version})`).join(', ')}</b>. Nothing is duplicated
+                  silently: the created distribution set and its id are shown in the confirmation toast.
+                </p>
+              </>
             )}
             <p>
               <b>Warning:</b> this triggers a real update on {forceReinstallState?.targetLabel}.
@@ -369,9 +396,13 @@ export default function DeploymentDndLayoutContainer() {
             <ActionButtons>
               <ActionButtons.Primary
                 onClick={handleForceReinstall}
-                disabled={isForceReinstalling || !forceReinstallState || forceReinstallState.twins.length === 0 || forceReinstallState.missing.length > 0}
+                disabled={isForceReinstalling || !forceReinstallState || (forceReinstallState.twins.length === 0 && forceReinstallState.missing.length === 0)}
               >
-                {isForceReinstalling ? 'Forcing...' : 'Force reinstall'}
+                {isForceReinstalling
+                  ? 'Creating twin and forcing...'
+                  : forceReinstallState && forceReinstallState.missing.length > 0
+                    ? 'Create twin and force reinstall'
+                    : 'Force reinstall'}
               </ActionButtons.Primary>
               <ActionButtons.Secondary onClick={() => setForceReinstallState(null)}>Cancel</ActionButtons.Secondary>
             </ActionButtons>

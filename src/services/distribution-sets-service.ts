@@ -14,6 +14,7 @@ import {
 } from './distribution-sets-services.types';
 import { FilterFiql, SoftwareModule } from '@/entities';
 import { GetMetadataOutput, GetMetadataResponse } from '@/services/targets-service.types';
+import { unwrapCreatedDistributionSet } from '@/utils/distribution-set';
 
 export interface DistributionSetsQueryParams {
   query?: string;
@@ -53,8 +54,10 @@ export class DistributionSetsService {
 
   static async createDistributionSet(data: CreateDistributionSetInput[]): Promise<Distribution> {
     try {
-      const response = await axiosInstance.post<CreateDistributionSetResponse>(`/distributionsets`, data);
-      return response.data;
+      // hawkBit always answers a POST with an array of created entities, even for
+      // a single-item request. Callers that need the new id must unwrap it.
+      const response = await axiosInstance.post<CreateDistributionSetResponse[] | CreateDistributionSetResponse>(`/distributionsets`, data);
+      return unwrapCreatedDistributionSet(response.data);
     } catch (error) {
       console.error('Failed to create distribution set', error);
       throw error;
