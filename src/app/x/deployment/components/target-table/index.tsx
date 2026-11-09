@@ -51,6 +51,11 @@ export default function TargetTable({
 
   const shortColumns = useMemo(() => {
     return [
+      columnHelper.accessor('controllerId', {
+        header: 'Target Id (Controller ID)',
+        size: 240,
+        cell: (info) => info.getValue(),
+      }),
       columnHelper.accessor('name', {
         header: 'Name',
         cell: (info) => (
@@ -83,6 +88,11 @@ export default function TargetTable({
 
   const fullColumns = useMemo(() => {
     return [
+      columnHelper.accessor('controllerId', {
+        header: 'Target Id (Controller ID)',
+        size: 240,
+        cell: (info) => info.getValue(),
+      }),
       columnHelper.accessor('name', {
         header: 'Name',
         cell: (info) => (
@@ -90,10 +100,6 @@ export default function TargetTable({
             {info.getValue()}
           </button>
         ),
-      }),
-      columnHelper.accessor('controllerId', {
-        header: 'Controller Id',
-        cell: (info) => info.getValue(),
       }),
       columnHelper.accessor('createdAt', {
         header: 'Created Date',

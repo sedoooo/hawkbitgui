@@ -23,7 +23,7 @@ export default function TargetFilterTargetsTable({ targets, isLoading = false, p
   const columns = useMemo(() => {
     return [
       columnHelper.accessor('controllerId', {
-        header: 'Controller Id',
+        header: 'Target Id (Controller ID)',
         cell: (cell) => (
           <Button variant='text' onClick={() => onControllerIdClick(cell.getValue())}>
             {cell.getValue()}

@@ -16,6 +16,10 @@ type DistributionSetDisplayFields = {
   typeName?: string | null;
 };
 
+type TargetDisplayFields = {
+  controllerId?: string | null;
+};
+
 export function formatUtcDateTime(value: number | string | Date | null | undefined): string {
   if (value === null || value === undefined || value === '') {
     return EMPTY_DISPLAY_VALUE;
@@ -40,4 +44,8 @@ export function resolveSoftwareModuleVendor(module: SoftwareModuleDisplayFields)
 
 export function resolveDistributionSetType(distributionSet: DistributionSetDisplayFields): string {
   return distributionSet.typeName || distributionSet.type || EMPTY_DISPLAY_VALUE;
+}
+
+export function resolveTargetId(target: TargetDisplayFields): string {
+  return target.controllerId || EMPTY_DISPLAY_VALUE;
 }

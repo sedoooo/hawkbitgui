@@ -18,7 +18,7 @@ export default function RolloutDeployGroupTargetsTable({ deployGroupTargets, isL
   const columns = useMemo(() => {
     return [
       columnHelper.accessor('controllerId', {
-        header: 'Controller ID',
+        header: 'Target Id (Controller ID)',
         cell: (cell) => cell.getValue(),
       }),
       columnHelper.accessor('name', {

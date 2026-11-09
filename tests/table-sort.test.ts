@@ -48,6 +48,12 @@ describe('compareValues', () => {
     expect(compareValues('beta', 'alpha', 'name')).toBeGreaterThan(0);
   });
 
+  test('orders target controller ids naturally for the Target Id column', () => {
+    expect(compareValues('fota-dk2-01', 'fota-dk2-01-dongle', 'controllerId')).toBeLessThan(0);
+    expect(compareValues('fota-dk2-01-dongle', 'fota-sim-01', 'controllerId')).toBeLessThan(0);
+    expect(compareValues('target-2', 'target-10', 'controllerId')).toBeLessThan(0);
+  });
+
   test('keeps empty values after defined values in ascending order', () => {
     expect(compareValues(null, 'value', 'name')).toBeGreaterThan(0);
     expect(compareValues('value', undefined, 'name')).toBeLessThan(0);

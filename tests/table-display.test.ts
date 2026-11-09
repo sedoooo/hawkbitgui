@@ -5,6 +5,7 @@ import {
   resolveDistributionSetType,
   resolveSoftwareModuleType,
   resolveSoftwareModuleVendor,
+  resolveTargetId,
 } from '../src/utils/table-display';
 
 describe('formatUtcDateTime', () => {
@@ -47,5 +48,18 @@ describe('distribution set display mapping', () => {
     expect(resolveDistributionSetType({ type: 'os', typeName: 'OS only' })).toBe('OS only');
     expect(resolveDistributionSetType({ type: 'app' })).toBe('app');
     expect(resolveDistributionSetType({})).toBe(EMPTY_DISPLAY_VALUE);
+  });
+});
+
+describe('target display mapping', () => {
+  test('maps the Target Id column to the hawkBit controllerId', () => {
+    expect(resolveTargetId({ controllerId: 'fota-dk2-01' })).toBe('fota-dk2-01');
+    expect(resolveTargetId({ controllerId: 'fota-dk2-01-dongle' })).toBe('fota-dk2-01-dongle');
+    expect(resolveTargetId({ controllerId: 'fota-dk2-01~esp32s3-983DAEEB1BCC' })).toBe('fota-dk2-01~esp32s3-983DAEEB1BCC');
+  });
+
+  test('marks targets without a controllerId', () => {
+    expect(resolveTargetId({ controllerId: null })).toBe(EMPTY_DISPLAY_VALUE);
+    expect(resolveTargetId({})).toBe(EMPTY_DISPLAY_VALUE);
   });
 });
