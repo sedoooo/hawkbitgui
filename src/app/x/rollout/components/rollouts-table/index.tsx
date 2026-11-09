@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useMemo, useCallback } from 'react';
-import { createColumnHelper } from '@tanstack/react-table';
+import { createColumnHelper, SortingState } from '@tanstack/react-table';
 import Table from '@/app/components/table';
 import EditIcon from '@/app/components/icons/edit-icon';
 import TrashIcon from '@/app/components/icons/trash-icon';
@@ -22,6 +22,8 @@ import { Pagination } from '@/types/utils/pagination';
 import { transformToColumnVisibility } from '@/utils/columns-visibility';
 
 export type RolloutsTableProps = {
+  sorting?: SortingState;
+  onSortingChange?: (sorting: SortingState) => void;
   rollouts: Rollout[];
   isLoading?: boolean;
   visibleColumns: Record<string, VisibleColumn>;
@@ -51,6 +53,8 @@ export default function RolloutsTable({
   onCopyClick,
   onDeleteClick,
   onPageChange,
+  sorting,
+  onSortingChange,
 }: RolloutsTableProps) {
   const columnHelper = createColumnHelper<Rollout>();
 
@@ -248,6 +252,16 @@ export default function RolloutsTable({
   ]);
 
   return (
-    <Table columns={columns} data={rollouts} isLoading={isLoading} columnVisibility={columnVisibility} pagination={pagination} onPageChange={onPageChange} />
+    <Table
+      columns={columns}
+      data={rollouts}
+      isLoading={isLoading}
+      columnVisibility={columnVisibility}
+      pagination={pagination}
+      onPageChange={onPageChange}
+      sorting={sorting}
+      onSortingChange={onSortingChange}
+      manualSorting
+    />
   );
 }

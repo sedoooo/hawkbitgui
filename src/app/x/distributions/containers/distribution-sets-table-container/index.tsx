@@ -11,9 +11,11 @@ import { useConfirmDialog } from '@/app/hooks';
 import { useDeleteDistributionSet } from '../../hooks/use-delete-distribution-set';
 import EditDistributionSetFormContainer from '../edit-distribution-set-form-container';
 import { useGetPaginatedDistributionSets } from '../../hooks/use-get-paginated-distribution-sets';
+import { useTableSorting } from '@/app/hooks/use-table-sorting';
 
 export default function DistributionSetsTableContainer() {
-  const { data: distributionSetsData, refetch, isLoading } = useGetPaginatedDistributionSets();
+  const { sorting, setSorting } = useTableSorting();
+  const { data: distributionSetsData, refetch, isLoading } = useGetPaginatedDistributionSets({ sorting });
   const { distributionSets, totalDistributionSets } = distributionSetsData ?? { distributionSets: [], totalDistributionSets: 0 };
 
   const visibleColumns = useDistributionsSetsTableStore((state) => state.visibleColumns);
@@ -21,6 +23,11 @@ export default function DistributionSetsTableContainer() {
   const page = useDistributionsSetsTableStore((state) => state.page);
   const size = useDistributionsSetsTableStore((state) => state.size);
   const setPage = useDistributionsSetsTableStore((state) => state.setPage);
+
+  const handleSortingChange = (newSorting: typeof sorting) => {
+    setSorting(newSorting);
+    setPage(0);
+  };
 
   const setSelectedDistribution = useDistributionsSetsTableStore((state) => state.setSelectedDistribution);
   const selectedDistribution = useDistributionsSetsTableStore((state) => state.selectedDistribution);
@@ -82,6 +89,8 @@ export default function DistributionSetsTableContainer() {
         onEditClick={handleEditClick}
         onDeleteClick={handleDeleteClick}
         onPageChange={setPage}
+        sorting={sorting}
+        onSortingChange={handleSortingChange}
       />
       {isEditDistributionSetFormOpen && selectedDistribution && (
         <Modal isOpen={isEditDistributionSetFormOpen} onClose={closeEditForm}>

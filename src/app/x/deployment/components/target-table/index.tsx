@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useMemo } from 'react';
-import { createColumnHelper, CellContext } from '@tanstack/react-table';
+import { createColumnHelper, CellContext, SortingState } from '@tanstack/react-table';
 import styles from './styles.module.scss';
 import Table from '@/app/components/table';
 import { Target } from '@/entities';
@@ -16,6 +16,8 @@ import { transformToColumnVisibility } from '@/utils/columns-visibility';
 import { TargetsTableColumnKey } from '@/stores/targets-table-store';
 
 export type TargetTableProps = {
+  sorting?: SortingState;
+  onSortingChange?: (sorting: SortingState) => void;
   isLoading?: boolean;
   onTargetNameClick?: (target: Target) => void;
   targets?: Target[];
@@ -39,6 +41,8 @@ export default function TargetTable({
   onRowClick,
   isLoading,
   visibleColumns,
+  sorting,
+  onSortingChange,
 }: TargetTableProps) {
   const columnHelper = createColumnHelper<Target>();
 
@@ -121,6 +125,9 @@ export default function TargetTable({
         onRowClick={(_, target) => onRowClick?.(target)}
         isLoading={isLoading}
         onPageChange={onPageChange}
+        sorting={sorting}
+        onSortingChange={onSortingChange}
+        manualSorting
       />
     </>
   );

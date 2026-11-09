@@ -21,6 +21,8 @@ export default function TargetTableContainer() {
   const size = useTargetsTableStore((state) => state.size);
   const total = useTargetsTableStore((state) => state.total);
   const setPage = useTargetsTableStore((state) => state.setPage);
+  const sorting = useTargetsTableStore((state) => state.sorting);
+  const setSorting = useTargetsTableStore((state) => state.setSorting);
   const targetsTableStore = useTargetsTableStore();
   const setTargetActionTargetId = useTargetActionsTableStore((state) => state.setSelectedTargetId);
 
@@ -51,6 +53,11 @@ export default function TargetTableContainer() {
     fetchTargets();
   };
 
+  const handleSortingChange = (newSorting: typeof sorting) => {
+    setSorting(newSorting);
+    fetchTargets();
+  };
+
   useTargetsPolling();
 
   return (
@@ -75,6 +82,8 @@ export default function TargetTableContainer() {
         onRowClick={handleOnRowClick}
         isLoading={isLoading}
         onPageChange={handlePageChange}
+        sorting={sorting}
+        onSortingChange={handleSortingChange}
       />
       <Modal isOpen={isTargetInfoModalOpen} variant='unstyled' size='lg' onClose={() => setIsTargetInfoModalOpen(false)}>
         <TargetInfo />

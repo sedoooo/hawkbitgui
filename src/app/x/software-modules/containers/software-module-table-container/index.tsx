@@ -10,12 +10,14 @@ import SoftwareModuleInfo from '../../components/software-module-info';
 import EditSoftwareModuleFormContainer from '../edit-software-module-form-container';
 import { useSoftwareModuleFiltersStore } from '@/stores/software-module-filters-store';
 import { useGetPaginatedSoftwareModules } from '../../hooks/use-get-paginated-software-modules';
+import { useTableSorting } from '@/app/hooks/use-table-sorting';
 
 export default function SoftwareModuleTableContainer() {
+  const { sorting, setSorting } = useTableSorting();
   const filters = useSoftwareModuleFiltersStore((state) => state.filters);
   const fiqlQueryParam = FilterFiql.parseFiltersToFeedItemQueryLanguage(Object.values(filters) ?? []);
   const query = fiqlQueryParam !== '' ? fiqlQueryParam : undefined;
-  const { data: softwareModulesData, refetch, isLoading } = useGetPaginatedSoftwareModules({ queryParams: { q: query } });
+  const { data: softwareModulesData, refetch, isLoading } = useGetPaginatedSoftwareModules({ queryParams: { q: query }, sorting });
   const { softwareModules, totalSoftwareModules } = softwareModulesData ?? { softwareModules: [], totalSoftwareModules: 0 };
 
   const visibleColumns = useSoftwareModulesStore((state) => state.visibleColumns);
@@ -23,6 +25,11 @@ export default function SoftwareModuleTableContainer() {
   const page = useSoftwareModulesStore((state) => state.page);
   const size = useSoftwareModulesStore((state) => state.size);
   const setPage = useSoftwareModulesStore((state) => state.setPage);
+
+  const handleSortingChange = (newSorting: typeof sorting) => {
+    setSorting(newSorting);
+    setPage(0);
+  };
 
   const setSelectedSoftwareModule = useSoftwareModulesStore((state) => state.setSelectedSoftwareModule);
   const selectedSoftwareModule = useSoftwareModulesStore((state) => state.selectedSoftwareModule);
@@ -81,6 +88,8 @@ export default function SoftwareModuleTableContainer() {
         onDeleteClick={handleDeleteSoftwareModule}
         onRowClick={handleRowClick}
         onPageChange={setPage}
+        sorting={sorting}
+        onSortingChange={handleSortingChange}
       />
       <Modal isOpen={isSoftwareModuleInfoModalOpen} variant='unstyled' size='lg' onClose={closeInfoModal}>
         <SoftwareModuleInfo />

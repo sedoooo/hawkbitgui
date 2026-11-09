@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { createColumnHelper } from '@tanstack/react-table';
+import { createColumnHelper, SortingState } from '@tanstack/react-table';
 import Table from '@/app/components/table';
 import Button from '@/app/components/button';
 import { TargetFilter } from '@/entities/target-filter';
@@ -20,6 +20,8 @@ import { transformToColumnVisibility } from '@/utils/columns-visibility';
 type TargetFiltersColumnKey = TargetFilterKey | 'actions';
 
 interface TargetFiltersTableProps {
+  sorting?: SortingState;
+  onSortingChange?: (sorting: SortingState) => void;
   modules: TargetFilter[];
   isLoading?: boolean;
   visibleColumns: Partial<Record<TargetFiltersColumnKey, VisibleColumn>>;
@@ -39,6 +41,8 @@ export default function TargetFiltersTable({
   onDelete,
   onAutoAssignDistributionClick,
   onPageChange,
+  sorting,
+  onSortingChange,
 }: TargetFiltersTableProps) {
   const columnHelper = createColumnHelper<TargetFilter>();
   const columnVisibility = useMemo(() => transformToColumnVisibility(visibleColumns), [visibleColumns]);
@@ -116,6 +120,16 @@ export default function TargetFiltersTable({
   );
 
   return (
-    <Table columns={fullColumns} data={modules} isLoading={isLoading} columnVisibility={columnVisibility} pagination={pagination} onPageChange={onPageChange} />
+    <Table
+      columns={fullColumns}
+      data={modules}
+      isLoading={isLoading}
+      columnVisibility={columnVisibility}
+      pagination={pagination}
+      onPageChange={onPageChange}
+      sorting={sorting}
+      onSortingChange={onSortingChange}
+      manualSorting
+    />
   );
 }

@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { createColumnHelper } from '@tanstack/react-table';
+import { createColumnHelper, SortingState } from '@tanstack/react-table';
 import Table from '@/app/components/table';
 import Button from '@/app/components/button';
 import { SoftwareModule, SoftwareModuleKey } from '@/entities/software-module';
@@ -13,6 +13,8 @@ import { formatUtcDateTime, resolveSoftwareModuleType, resolveSoftwareModuleVend
 import { VisibleColumn } from '@/types/utils/visible-column';
 
 interface SoftwareModuleTableProps {
+  sorting?: SortingState;
+  onSortingChange?: (sorting: SortingState) => void;
   modules: SoftwareModule[];
   isLoading?: boolean;
   visibleColumns: Partial<Record<SoftwareModuleKey, VisibleColumn>>;
@@ -34,6 +36,8 @@ export default function SoftwareModuleTable({
   onEditClick,
   onDeleteClick,
   onPageChange,
+  sorting,
+  onSortingChange,
 }: SoftwareModuleTableProps) {
   const columnHelper = createColumnHelper<SoftwareModule>();
 
@@ -117,6 +121,9 @@ export default function SoftwareModuleTable({
       selectable={true}
       onRowClick={(_, data) => onRowClick?.(data)}
       onPageChange={onPageChange}
+      sorting={sorting}
+      onSortingChange={onSortingChange}
+      manualSorting
     />
   );
 }

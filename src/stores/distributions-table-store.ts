@@ -1,10 +1,13 @@
-import { create } from 'zustand';
+import { create, type StoreApi } from 'zustand';
+import type { SortingState } from '@tanstack/react-table';
 import { Distribution } from '@/entities';
 import { DistributionSetsService } from '@/services/distribution-sets-service';
 import { useDistributionsFiltersStore } from '@/stores/distributions-filters-store';
 import { DEFAULT_PAGE_SIZE } from '@/utils/pagination';
 import { VisibleColumn } from '@/types/utils/visible-column';
 import { getColumnVisibilityStorageKey } from '@/utils/columns-visibility';
+import { DISTRIBUTION_SETS_SERVER_SORT } from '@/utils/table-sort-maps';
+import { computeSort, GLOBAL_SORT_MAX_ROWS, paginateRows, sortRowsClientSide } from '@/utils/global-sort';
 
 export type DistributionsTableColumnKey = keyof Distribution | 'actions';
 
@@ -62,8 +65,10 @@ interface DistributionsTableState {
   page: number;
   size: number;
   total: number;
+  sorting: SortingState;
   visibleColumns: Partial<Record<DistributionsTableColumnKey, VisibleColumn>>;
   setPage: (page: number) => void;
+  setSorting: (sorting: SortingState) => void;
   setTotal: (total: number) => void;
   setSelectedDistribution: (distribution: Distribution) => void;
   setFilteredDistributions: (filtered: Distribution[]) => void;
@@ -86,8 +91,10 @@ export const useDistributionsTableStore = create<DistributionsTableState>((set) 
   page: 0,
   size: DEFAULT_PAGE_SIZE,
   total: 0,
+  sorting: [],
   visibleColumns: DEFAULT_DISTRIBUTIONS_TABLE_VISIBLE_COLUMNS,
   setPage: (page) => set({ page }),
+  setSorting: (sorting) => set({ sorting, page: 0 }),
   setTotal: (total) => set({ total }),
   setSelectedDistribution: (distribution) => set({ selectedDistribution: distribution }),
   setFilteredDistributions: (filtered) => set({ filteredDistributions: filtered }),
@@ -100,13 +107,7 @@ export const useDistributionsTableStore = create<DistributionsTableState>((set) 
   fetchDistributions: async () => {
     set({ isLoading: true });
     try {
-      const filters = useDistributionsFiltersStore.getState().filters;
-      const { page, size } = useDistributionsTableStore.getState();
-      const { distributionSets, totalDistributionSets } = await DistributionSetsService.fetchDistributionSets(
-        { filters: Object.values(filters) },
-        { offset: page * size, limit: size, sort: 'name:ASC' }
-      );
-      set({ distributions: distributionSets, filteredDistributions: distributionSets, total: totalDistributionSets });
+      await fetchDistributionsPage(set);
     } catch (error) {
       console.error('Failed to fetch distributions', error);
     } finally {
@@ -115,15 +116,37 @@ export const useDistributionsTableStore = create<DistributionsTableState>((set) 
   },
   pollDistributions: async () => {
     try {
-      const filters = useDistributionsFiltersStore.getState().filters;
-      const { page, size } = useDistributionsTableStore.getState();
-      const { distributionSets, totalDistributionSets } = await DistributionSetsService.fetchDistributionSets(
-        { filters: Object.values(filters) },
-        { offset: page * size, limit: size, sort: 'name:ASC' }
-      );
-      set({ distributions: distributionSets, filteredDistributions: distributionSets, total: totalDistributionSets });
+      await fetchDistributionsPage(set);
     } catch (error) {
       console.error('Failed to poll distributions', error);
     }
   },
 }));
+
+type DistributionsStoreSet = StoreApi<DistributionsTableState>['setState'];
+
+async function fetchDistributionsPage(set: DistributionsStoreSet) {
+  const filters = useDistributionsFiltersStore.getState().filters;
+  const { page, size, sorting } = useDistributionsTableStore.getState();
+  const { serverSort, isClient, activeSort } = computeSort(sorting, DISTRIBUTION_SETS_SERVER_SORT, 'name:ASC');
+
+  if (isClient) {
+    const { distributionSets, totalDistributionSets } = await DistributionSetsService.fetchDistributionSets(
+      { filters: Object.values(filters) },
+      { offset: 0, limit: GLOBAL_SORT_MAX_ROWS }
+    );
+    if (totalDistributionSets > GLOBAL_SORT_MAX_ROWS) {
+      console.warn(`Client-side distribution sort truncated to ${GLOBAL_SORT_MAX_ROWS} of ${totalDistributionSets} rows`);
+    }
+    const sorted = sortRowsClientSide(distributionSets, activeSort);
+    const paged = paginateRows(sorted, page, size);
+    set({ distributions: paged, filteredDistributions: paged, total: sorted.length });
+    return;
+  }
+
+  const { distributionSets, totalDistributionSets } = await DistributionSetsService.fetchDistributionSets(
+    { filters: Object.values(filters) },
+    { offset: page * size, limit: size, sort: serverSort }
+  );
+  set({ distributions: distributionSets, filteredDistributions: distributionSets, total: totalDistributionSets });
+}

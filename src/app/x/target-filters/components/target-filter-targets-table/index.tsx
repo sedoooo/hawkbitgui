@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useMemo } from 'react';
-import { createColumnHelper } from '@tanstack/react-table';
+import { createColumnHelper, SortingState } from '@tanstack/react-table';
 import Table from '@/app/components/table';
 import { Target } from '@/entities';
 import dayjs from 'dayjs';
@@ -13,6 +13,8 @@ import { transformToColumnVisibility } from '@/utils/columns-visibility';
 import { TargetFilterTargetsTableColumnKey } from '@/stores/target-filter-targets-table-store';
 
 export type TargetFilterTargetsTableProps = {
+  sorting?: SortingState;
+  onSortingChange?: (sorting: SortingState) => void;
   targets: Target[];
   isLoading?: boolean;
   pagination: Pagination;
@@ -28,6 +30,8 @@ export default function TargetFilterTargetsTable({
   onControllerIdClick,
   onPageChange,
   visibleColumns,
+  sorting,
+  onSortingChange,
 }: TargetFilterTargetsTableProps) {
   const columnHelper = createColumnHelper<Target>();
 
@@ -79,6 +83,16 @@ export default function TargetFilterTargetsTable({
   }, [visibleColumns]);
 
   return (
-    <Table columns={columns} columnVisibility={columnVisibility} data={targets} isLoading={isLoading} pagination={pagination} onPageChange={onPageChange} />
+    <Table
+      columns={columns}
+      columnVisibility={columnVisibility}
+      data={targets}
+      isLoading={isLoading}
+      pagination={pagination}
+      onPageChange={onPageChange}
+      sorting={sorting}
+      onSortingChange={onSortingChange}
+      manualSorting
+    />
   );
 }

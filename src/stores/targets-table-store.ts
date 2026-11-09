@@ -1,10 +1,13 @@
-import { create } from 'zustand';
+import { create, type StoreApi } from 'zustand';
+import type { SortingState } from '@tanstack/react-table';
 import { Target } from '@/entities';
 import { TargetsService } from '@/services/targets-service';
 import { useTargetsFiltersStore } from '@/stores/targets-filters-store';
 import { DEFAULT_PAGE_SIZE } from '@/utils/pagination';
 import { VisibleColumn } from '@/types/utils/visible-column';
 import { getColumnVisibilityStorageKey } from '@/utils/columns-visibility';
+import { TARGETS_SERVER_SORT } from '@/utils/table-sort-maps';
+import { computeSort, GLOBAL_SORT_MAX_ROWS, paginateRows, sortRowsClientSide } from '@/utils/global-sort';
 
 export type TargetsTableColumnKey = keyof Target | 'actions';
 
@@ -62,8 +65,10 @@ interface TargetsTableState {
   page: number;
   size: number;
   total: number;
+  sorting: SortingState;
   visibleColumns: Partial<Record<TargetsTableColumnKey, VisibleColumn>>;
   setPage: (page: number) => void;
+  setSorting: (sorting: SortingState) => void;
   setTotal: (total: number) => void;
   setSelectedTarget: (target: Target) => void;
   setFilteredTargets: (filteredTargets: Target[]) => void;
@@ -86,8 +91,10 @@ export const useTargetsTableStore = create<TargetsTableState>((set) => ({
   page: 0,
   size: DEFAULT_PAGE_SIZE,
   total: 0,
+  sorting: [],
   visibleColumns: DEFAULT_TARGETS_TABLE_VISIBLE_COLUMNS,
   setPage: (page) => set({ page }),
+  setSorting: (sorting) => set({ sorting, page: 0 }),
   setTotal: (total: number) => set({ total }),
   setSelectedTarget: (target) => set({ selectedTarget: target }),
   setFilteredTargets: (filteredTargets) => set({ filteredTargets }),
@@ -101,13 +108,7 @@ export const useTargetsTableStore = create<TargetsTableState>((set) => ({
   fetchTargets: async () => {
     set({ isLoading: true });
     try {
-      const filters = useTargetsFiltersStore.getState().filters;
-      const { page, size } = useTargetsTableStore.getState();
-      const { targets, totalTargets } = await TargetsService.fetchTargets({
-        filters: Object.values(filters),
-        queryParams: { offset: page * size, limit: size, sort: 'name:ASC' },
-      });
-      set({ targets, filteredTargets: targets, total: totalTargets });
+      await fetchTargetsPage(set);
     } catch (error) {
       console.error('Failed to fetch targets', error);
     } finally {
@@ -117,15 +118,37 @@ export const useTargetsTableStore = create<TargetsTableState>((set) => ({
 
   pollTargets: async () => {
     try {
-      const filters = useTargetsFiltersStore.getState().filters;
-      const { page, size } = useTargetsTableStore.getState();
-      const { targets, totalTargets } = await TargetsService.fetchTargets({
-        filters: Object.values(filters),
-        queryParams: { offset: page * size, limit: size, sort: 'name:ASC' },
-      });
-      set({ targets, filteredTargets: targets, total: totalTargets });
+      await fetchTargetsPage(set);
     } catch (error) {
       console.error('Failed to poll targets', error);
     }
   },
 }));
+
+type TargetsStoreSet = StoreApi<TargetsTableState>['setState'];
+
+async function fetchTargetsPage(set: TargetsStoreSet) {
+  const filters = useTargetsFiltersStore.getState().filters;
+  const { page, size, sorting } = useTargetsTableStore.getState();
+  const { serverSort, isClient, activeSort } = computeSort(sorting, TARGETS_SERVER_SORT, 'name:ASC');
+
+  if (isClient) {
+    const { targets, totalTargets } = await TargetsService.fetchTargets({
+      filters: Object.values(filters),
+      queryParams: { offset: 0, limit: GLOBAL_SORT_MAX_ROWS },
+    });
+    if (totalTargets > GLOBAL_SORT_MAX_ROWS) {
+      console.warn(`Client-side target sort truncated to ${GLOBAL_SORT_MAX_ROWS} of ${totalTargets} rows`);
+    }
+    const sorted = sortRowsClientSide(targets, activeSort);
+    const paged = paginateRows(sorted, page, size);
+    set({ targets: paged, filteredTargets: paged, total: sorted.length });
+    return;
+  }
+
+  const { targets, totalTargets } = await TargetsService.fetchTargets({
+    filters: Object.values(filters),
+    queryParams: { offset: page * size, limit: size, sort: serverSort },
+  });
+  set({ targets, filteredTargets: targets, total: totalTargets });
+}

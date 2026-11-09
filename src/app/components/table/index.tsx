@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { useReactTable, getCoreRowModel, getSortedRowModel, ColumnDef, flexRender, VisibilityState, SortingFn } from '@tanstack/react-table';
+import { useReactTable, getCoreRowModel, getSortedRowModel, ColumnDef, flexRender, VisibilityState, SortingFn, SortingState } from '@tanstack/react-table';
 import Skeleton from 'react-loading-skeleton';
 import styles from './styles.module.scss';
 import DraggableDroppableRow from '@/app/components/draggable-droppable-row';
@@ -10,7 +10,7 @@ import { isDefined } from '@/utils/is-defined';
 import type { Pagination } from '@/types/utils/pagination';
 import PageNavigation from '../pagination';
 import { useTableSorting } from '@/app/hooks/use-table-sorting';
-import { getSortDirection, typeAwareSortingFn } from '@/utils/table-sort';
+import { getSortDirection, toggleSortingState, typeAwareSortingFn } from '@/utils/table-sort';
 
 export type TableProps<T> = {
   data: T[];
@@ -24,6 +24,9 @@ export type TableProps<T> = {
   onRowClick?: (rowId: string, data: T, event: React.MouseEvent) => void;
   onRowSelect?: (rowId: string, data: T) => void;
   onPageChange?: (page: number) => void;
+  sorting?: SortingState;
+  onSortingChange?: (sorting: SortingState) => void;
+  manualSorting?: boolean;
 };
 
 export default function Table<T>({
@@ -38,12 +41,18 @@ export default function Table<T>({
   onRowClick,
   onRowSelect,
   onPageChange,
+  sorting: controlledSorting,
+  onSortingChange,
+  manualSorting = false,
 }: TableProps<T>) {
   const uuid = useMemo(() => `table-${Math.random().toString(36).substr(2, 9)}`, []);
   const [selectedRows, setSelectedRows] = useState<Record<string, T>>({});
   const [columnSizing, setColumnSizing] = useState({});
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
-  const { sorting, setSorting, toggleSort } = useTableSorting();
+  const internalSorting = useTableSorting();
+  const sorting = controlledSorting ?? internalSorting.sorting;
+  const setSorting = onSortingChange ?? internalSorting.setSorting;
+  const toggleSort = (columnId: string) => setSorting(toggleSortingState(sorting, columnId));
 
   const table = useReactTable<T>({
     data,
@@ -53,6 +62,7 @@ export default function Table<T>({
     enableSorting: true,
     enableSortingRemoval: true,
     sortDescFirst: false,
+    manualSorting,
     defaultColumn: {
       sortingFn: typeAwareSortingFn as SortingFn<T>,
     },
@@ -65,7 +75,7 @@ export default function Table<T>({
     },
     onColumnSizingChange: setColumnSizing,
     onColumnVisibilityChange: setColumnVisibility,
-    onSortingChange: setSorting,
+    onSortingChange: (updater) => setSorting(typeof updater === 'function' ? updater(sorting) : updater),
   });
 
   useEffect(() => {
@@ -113,6 +123,7 @@ export default function Table<T>({
                     <div
                       className={styles.th}
                       key={header.id}
+                      data-testid={`table-header-${header.column.id}`}
                       style={{
                         width: header.getSize(),
                         minWidth: header.column.columnDef.minSize,
@@ -169,6 +180,7 @@ export default function Table<T>({
                       <div
                         className={styles.td}
                         key={cell.id}
+                        data-testid={`table-cell-${cell.column.id}`}
                         style={{
                           width: cell.column.getSize(),
                           minWidth: cell.column.columnDef.minSize,

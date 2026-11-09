@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useMemo } from 'react';
-import { createColumnHelper } from '@tanstack/react-table';
+import { createColumnHelper, SortingState } from '@tanstack/react-table';
 import Table from '@/app/components/table';
 import { Distribution, DistributionKey } from '@/entities';
 import Button from '@/app/components/button';
@@ -15,6 +15,8 @@ import { formatUtcDateTime, resolveDistributionSetType } from '@/utils/table-dis
 import { VisibleColumn } from '@/types/utils/visible-column';
 
 export type DistributionSetsTableProps = {
+  sorting?: SortingState;
+  onSortingChange?: (sorting: SortingState) => void;
   distributionSets: Distribution[];
   isLoading?: boolean;
   visibleColumns: Partial<Record<DistributionKey, VisibleColumn>>;
@@ -34,6 +36,8 @@ export default function DistributionSetsTable({
   onEditClick,
   onDeleteClick,
   onPageChange,
+  sorting,
+  onSortingChange,
 }: DistributionSetsTableProps) {
   const columnHelper = createColumnHelper<Distribution>();
 
@@ -113,6 +117,9 @@ export default function DistributionSetsTable({
       isLoading={isLoading}
       pagination={pagination}
       onPageChange={onPageChange}
+      sorting={sorting}
+      onSortingChange={onSortingChange}
+      manualSorting
     />
   );
 }

@@ -20,6 +20,8 @@ export default function DistributionsTableContainer() {
   const size = useDistributionsTableStore((state) => state.size);
   const total = useDistributionsTableStore((state) => state.total);
   const setPage = useDistributionsTableStore((state) => state.setPage);
+  const sorting = useDistributionsTableStore((state) => state.sorting);
+  const setSorting = useDistributionsTableStore((state) => state.setSorting);
   const distributionsTableStore = useDistributionsTableStore();
 
   const [isDistributionInfoModalOpen, setIsDistributionInfoModalOpen] = useState(false);
@@ -36,6 +38,11 @@ export default function DistributionsTableContainer() {
 
   const handlePageChange = (newPage: number) => {
     setPage(newPage);
+    fetchDistributions();
+  };
+
+  const handleSortingChange = (newSorting: typeof sorting) => {
+    setSorting(newSorting);
     fetchDistributions();
   };
 
@@ -61,6 +68,8 @@ export default function DistributionsTableContainer() {
         onDeleteClick={handleDeleteClick}
         isLoading={isLoading}
         onPageChange={handlePageChange}
+        sorting={sorting}
+        onSortingChange={handleSortingChange}
       />
       <Modal isOpen={isDistributionInfoModalOpen} variant='unstyled' size='lg' onClose={() => setIsDistributionInfoModalOpen(false)}>
         <DistributionInfo />

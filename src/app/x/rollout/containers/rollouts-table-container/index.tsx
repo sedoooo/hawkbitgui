@@ -18,13 +18,16 @@ import { usePauseRollout } from '../../hooks/use-pause-rollout';
 import { useTriggerNextGroup } from '../../hooks/use-trigger-next-group';
 import { useApproveRollout } from '../../hooks/use-approve-rollout';
 import { useRolloutsTableStore } from '@/stores/rollouts-table-store';
+import { useTableSorting } from '@/app/hooks/use-table-sorting';
 
 export default function RolloutsTableContainer() {
+  const { sorting, setSorting } = useTableSorting();
   const {
     data: rolloutsData,
     refetch,
     isLoading,
   } = useGetPaginatedRollouts({
+    sorting,
     queryOptions: {
       refetchInterval: (query: Query<UseGetPaginatedRolloutsOutput, ApiError>) => {
         const currentQueryData = query.state.data?.rollouts;
@@ -55,6 +58,11 @@ export default function RolloutsTableContainer() {
   const page = useRolloutsTableStore((state) => state.page);
   const size = useRolloutsTableStore((state) => state.size);
   const setPage = useRolloutsTableStore((state) => state.setPage);
+
+  const handleSortingChange = (newSorting: typeof sorting) => {
+    setSorting(newSorting);
+    setPage(0);
+  };
 
   const [isEditRolloutFormOpen, setIsEditRolloutFormOpen] = useState(false);
   const [isCopyRolloutFormOpen, setIsCopyRolloutFormOpen] = useState(false);
@@ -159,6 +167,8 @@ export default function RolloutsTableContainer() {
           totalItems: totalRollouts,
         }}
         onPageChange={setPage}
+        sorting={sorting}
+        onSortingChange={handleSortingChange}
         {...actions}
       />
       {isEditRolloutFormOpen && (

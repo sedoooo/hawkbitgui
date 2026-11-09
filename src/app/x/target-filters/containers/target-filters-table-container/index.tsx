@@ -11,15 +11,22 @@ import { Modal } from '@/app/components/modal';
 import AutoAssignDistributionFormContainer from '../auto-assign-distribution-form-container';
 import { useGetPaginatedTargetFilters } from '../../hooks/use-get-paginated-target-filters';
 import { useTargetFiltersTableStore } from '@/stores/target-filters-table-store';
+import { useTableSorting } from '@/app/hooks/use-table-sorting';
 
 export default function TargetFiltersTableContainer() {
-  const { data: targetFiltersData, refetch, isLoading } = useGetPaginatedTargetFilters();
+  const { sorting, setSorting } = useTableSorting();
+  const { data: targetFiltersData, refetch, isLoading } = useGetPaginatedTargetFilters({ sorting });
   const { targetFilters, totalTargetFilters } = targetFiltersData ?? { targetFilters: [], totalTargetFilters: 0 };
 
   const page = useTargetFiltersTableStore((state) => state.page);
   const size = useTargetFiltersTableStore((state) => state.size);
   const visibleColumns = useTargetFiltersTableStore((state) => state.visibleColumns);
   const setPage = useTargetFiltersTableStore((state) => state.setPage);
+
+  const handleSortingChange = (newSorting: typeof sorting) => {
+    setSorting(newSorting);
+    setPage(0);
+  };
 
   const setSelectedTargetFilter = useTargetFiltersPageStore((state) => state.setSelectedTargetFilter);
   const setAutoAssign = useTargetFiltersPageStore((state) => state.setAutoAssign);
@@ -66,6 +73,8 @@ export default function TargetFiltersTableContainer() {
         onDelete={handleDelete}
         onAutoAssignDistributionClick={openAutoAssignDistribution}
         onPageChange={setPage}
+        sorting={sorting}
+        onSortingChange={handleSortingChange}
       />
       <ConfirmDeleteModal isOpen={confirmDialog.isOpen} onConfirm={confirmDialog.confirm} onClose={confirmDialog.close}>
         <ConfirmDeleteModal.Message>
