@@ -9,7 +9,7 @@ import EditIcon from '@/app/components/icons/edit-icon';
 import ActionIconButtons from '@/app/components/action-icon-buttons';
 import { Pagination } from '@/types/utils/pagination';
 import { transformToColumnVisibility } from '@/utils/columns-visibility';
-import dayjs from 'dayjs';
+import { formatUtcDateTime, resolveSoftwareModuleType, resolveSoftwareModuleVendor } from '@/utils/table-display';
 import { VisibleColumn } from '@/types/utils/visible-column';
 
 interface SoftwareModuleTableProps {
@@ -43,6 +43,11 @@ export default function SoftwareModuleTable({
 
   const fullColumns = useMemo(
     () => [
+      columnHelper.accessor('id', {
+        header: 'Id',
+        size: 90,
+        cell: (cell) => cell.getValue(),
+      }),
       columnHelper.accessor('name', {
         header: 'Name',
         cell: (cell) => (
@@ -55,12 +60,18 @@ export default function SoftwareModuleTable({
         header: 'Version',
         cell: (cell) => cell.getValue(),
       }),
-      columnHelper.accessor('description', {
-        header: 'Description',
-        cell: (cell) => cell.getValue(),
+      columnHelper.accessor('typeName', {
+        header: 'Type',
+        size: 160,
+        cell: (cell) => resolveSoftwareModuleType(cell.row.original),
       }),
       columnHelper.accessor('vendor', {
         header: 'Vendor',
+        size: 160,
+        cell: (cell) => resolveSoftwareModuleVendor(cell.row.original),
+      }),
+      columnHelper.accessor('description', {
+        header: 'Description',
         cell: (cell) => cell.getValue(),
       }),
       columnHelper.accessor('createdBy', {
@@ -69,7 +80,7 @@ export default function SoftwareModuleTable({
       }),
       columnHelper.accessor('createdAt', {
         header: 'Created At',
-        cell: (cell) => dayjs(cell.getValue()).format('ddd MMM DD HH:mm:ss YYYY'),
+        cell: (cell) => formatUtcDateTime(cell.getValue()),
       }),
       columnHelper.accessor('lastModifiedBy', {
         header: 'Last Modified By',
@@ -79,7 +90,7 @@ export default function SoftwareModuleTable({
       columnHelper.accessor('lastModifiedAt', {
         header: 'Last Modified At',
         size: 160,
-        cell: (cell) => dayjs(cell.getValue()).format('ddd MMM DD HH:mm:ss YYYY'),
+        cell: (cell) => formatUtcDateTime(cell.getValue()),
       }),
       columnHelper.display({
         id: 'actions',

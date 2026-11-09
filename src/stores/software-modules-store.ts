@@ -5,19 +5,29 @@ import { VisibleColumn } from '@/types/utils/visible-column';
 import { enableAllColumnsVisibility } from '@/utils/columns-visibility';
 
 const DEFAULT_VISIBLE_COLUMNS = {
+  id: {
+    id: 'id',
+    label: 'Id',
+    isSelected: true,
+  },
   version: {
     id: 'version',
     label: 'Version',
     isSelected: true,
   },
-  description: {
-    id: 'description',
-    label: 'Description',
-    isSelected: false,
+  typeName: {
+    id: 'typeName',
+    label: 'Type',
+    isSelected: true,
   },
   vendor: {
     id: 'vendor',
     label: 'Vendor',
+    isSelected: true,
+  },
+  description: {
+    id: 'description',
+    label: 'Description',
     isSelected: false,
   },
   createdBy: {

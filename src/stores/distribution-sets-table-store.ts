@@ -17,9 +17,24 @@ interface DistributionsSetsTableState {
 }
 
 const DEFAULT_VISIBLE_COLUMNS: Partial<Record<DistributionKey, VisibleColumn>> = {
+  id: {
+    id: 'id',
+    label: 'Id',
+    isSelected: true,
+  },
   version: {
     id: 'version',
     label: 'Version',
+    isSelected: true,
+  },
+  createdAt: {
+    id: 'createdAt',
+    label: 'Creation Date',
+    isSelected: true,
+  },
+  typeName: {
+    id: 'typeName',
+    label: 'Type',
     isSelected: true,
   },
   description: {
@@ -30,11 +45,6 @@ const DEFAULT_VISIBLE_COLUMNS: Partial<Record<DistributionKey, VisibleColumn>> =
   createdBy: {
     id: 'createdBy',
     label: 'Created By',
-    isSelected: false,
-  },
-  createdAt: {
-    id: 'createdAt',
-    label: 'Created At',
     isSelected: false,
   },
   lastModifiedBy: {

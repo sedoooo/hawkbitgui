@@ -10,8 +10,8 @@ import TrashIcon from '@/app/components/icons/trash-icon';
 import TooltipIconButton from '@/app/components/tooltip-icon-button';
 import ActionIconButtons from '@/app/components/action-icon-buttons';
 import { Pagination } from '@/types/utils/pagination';
-import dayjs from 'dayjs';
 import { transformToColumnVisibility } from '@/utils/columns-visibility';
+import { formatUtcDateTime, resolveDistributionSetType } from '@/utils/table-display';
 import { VisibleColumn } from '@/types/utils/visible-column';
 
 export type DistributionSetsTableProps = {
@@ -43,6 +43,11 @@ export default function DistributionSetsTable({
 
   const fullColumns = useMemo(() => {
     return [
+      columnHelper.accessor('id', {
+        header: 'Id',
+        size: 90,
+        cell: (cell) => cell.getValue(),
+      }),
       columnHelper.accessor('name', {
         header: 'Name',
         size: 200,
@@ -57,6 +62,16 @@ export default function DistributionSetsTable({
         size: 200,
         cell: (cell) => cell.getValue(),
       }),
+      columnHelper.accessor('createdAt', {
+        header: 'Creation Date',
+        size: 190,
+        cell: (cell) => formatUtcDateTime(cell.getValue()),
+      }),
+      columnHelper.accessor('typeName', {
+        header: 'Type',
+        size: 160,
+        cell: (cell) => resolveDistributionSetType(cell.row.original),
+      }),
       columnHelper.accessor('description', {
         header: 'Description',
         cell: (cell) => cell.getValue(),
@@ -64,10 +79,6 @@ export default function DistributionSetsTable({
       columnHelper.accessor('createdBy', {
         header: 'Created By',
         cell: (cell) => cell.getValue(),
-      }),
-      columnHelper.accessor('createdAt', {
-        header: 'Created At',
-        cell: (cell) => dayjs(cell.getValue()).format('ddd MMM DD HH:mm:ss YYYY'),
       }),
       columnHelper.accessor('lastModifiedBy', {
         header: 'Last Modified By',
@@ -77,7 +88,7 @@ export default function DistributionSetsTable({
       columnHelper.accessor('lastModifiedAt', {
         header: 'Last Modified At',
         size: 160,
-        cell: (cell) => dayjs(cell.getValue()).format('ddd MMM DD HH:mm:ss YYYY'),
+        cell: (cell) => formatUtcDateTime(cell.getValue()),
       }),
       columnHelper.display({
         id: 'actions',
