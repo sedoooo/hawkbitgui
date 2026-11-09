@@ -1,0 +1,388 @@
+@use '../../../../styles/variables' as *;
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 18px 22px 22px;
+  background: linear-gradient(180deg, #f7f8fd 0%, #ffffff 100%);
+  border-left: 4px solid $accent-color;
+  border-bottom: 2px solid #e6eafb;
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.heading {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.statusRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.eyebrow {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: $light-primary-text-color;
+  text-transform: uppercase;
+}
+
+.detailStatus {
+  font-size: 12px;
+  color: $text-disabled-color;
+}
+
+.phaseSummary {
+  font-size: 13px;
+  color: $light-primary-text-color;
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.liveIndicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  color: $text-disabled-color;
+  background: $background-disabled-color;
+  border: 1px solid $border-disabled-color;
+
+  .liveDot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: $status-unknown;
+  }
+}
+
+.live {
+  color: $status-running;
+  background: #edf0ff;
+  border-color: #cfd6ff;
+
+  .liveDot {
+    background: $status-running;
+    animation: pulse 1.6s ease-in-out infinite;
+  }
+}
+
+.settled {
+  color: $status-finished;
+  background: #edf8ea;
+  border-color: #cfe9c7;
+
+  .liveDot {
+    background: $status-finished;
+  }
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(38, 53, 185, 0.45);
+  }
+  50% {
+    box-shadow: 0 0 0 5px rgba(38, 53, 185, 0);
+  }
+}
+
+.lastUpdated {
+  font-size: 12px;
+  color: $text-disabled-color;
+}
+
+.refreshButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid $accent-color;
+  background: #fff;
+  color: $accent-color;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: progress;
+  }
+
+  &:hover:not(:disabled) {
+    background: $secondary-color;
+  }
+}
+
+.progressBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.progressLabels {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: $light-primary-text-color;
+}
+
+.progressTrack {
+  width: 100%;
+  height: 10px;
+  border-radius: 999px;
+  background: $background-disabled-color;
+  overflow: hidden;
+  border: 1px solid $border-disabled-color;
+}
+
+.progressFill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, $accent-color 0%, $status-running 100%);
+  transition: width 0.4s ease;
+}
+
+.progressError {
+  background: linear-gradient(90deg, $status-error 0%, #e57373 100%);
+}
+
+.currentMessage {
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: $secondary-color;
+  color: $primary-text-color;
+  font-size: 13px;
+  word-break: break-word;
+}
+
+.stepper {
+  display: flex;
+  align-items: stretch;
+  list-style: none;
+  margin: 0;
+  padding: 4px 0 0;
+  overflow-x: auto;
+}
+
+.step {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  flex: 1 1 120px;
+  min-width: 118px;
+  padding: 0 12px 0 0;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 11px;
+    left: 26px;
+    right: 0;
+    height: 2px;
+    background: $border-disabled-color;
+  }
+
+  &:last-child::before {
+    display: none;
+  }
+}
+
+.marker {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid #d5d8e5;
+  background: #fff;
+  color: $text-disabled-color;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.stepBody {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.stepLabel {
+  font-size: 13px;
+  font-weight: 500;
+  color: $text-disabled-color;
+}
+
+.stepTime {
+  font-size: 11px;
+  color: $secondary-text-color;
+}
+
+.completed {
+  .marker {
+    border-color: $status-finished;
+    background: $status-finished;
+    color: #fff;
+  }
+
+  .stepLabel {
+    color: $light-primary-text-color;
+  }
+
+  &::before {
+    background: $status-finished;
+  }
+}
+
+.current {
+  .marker {
+    border-color: $status-running;
+    background: #edf0ff;
+    color: $status-running;
+    box-shadow: 0 0 0 4px rgba(38, 53, 185, 0.12);
+  }
+
+  .stepLabel {
+    color: $status-running;
+    font-weight: 700;
+  }
+
+  .stepTime {
+    color: $status-running;
+  }
+}
+
+.error {
+  .marker {
+    border-color: $status-error;
+    background: $status-error;
+    color: #fff;
+  }
+
+  .stepLabel {
+    color: $status-error;
+    font-weight: 700;
+  }
+
+  &::before {
+    background: $status-error;
+  }
+}
+
+.canceled {
+  .marker {
+    border-color: $status-unknown;
+    background: $status-unknown;
+    color: #fff;
+  }
+
+  .stepLabel {
+    color: $light-primary-text-color;
+    font-weight: 700;
+  }
+}
+
+.errorNotice {
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: #fdecea;
+  color: $status-error;
+  font-size: 13px;
+}
+
+.messagesHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: $light-primary-text-color;
+}
+
+.messages {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 220px;
+  overflow-y: auto;
+  border: 1px solid $border-disabled-color;
+  border-radius: 8px;
+  background: #fff;
+  padding: 6px;
+}
+
+.messageRow {
+  display: grid;
+  grid-template-columns: 68px 96px 1fr;
+  gap: 10px;
+  align-items: baseline;
+  padding: 5px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+
+  &:nth-child(odd) {
+    background: #fafbff;
+  }
+}
+
+.messageTime {
+  color: $secondary-text-color;
+  font-variant-numeric: tabular-nums;
+}
+
+.messageType {
+  justify-self: start;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: $secondary-color;
+  color: $light-primary-text-color;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.messageText {
+  color: $primary-text-color;
+  word-break: break-word;
+}
+
+.empty {
+  margin: 0;
+  padding: 8px;
+  color: $text-disabled-color;
+  font-size: 12px;
+}

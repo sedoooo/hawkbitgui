@@ -180,11 +180,17 @@ export class TargetsService {
 
   static async getActionLog(controllerId: string | number, actionId: string | number): Promise<GetActionLogOutput> {
     try {
-      const response = await axiosInstance.get<GetActionLogResponse>(`/targets/${controllerId}/actions/${actionId}/status`);
-      console.log('Fetched actions logs for target:', controllerId, response.data.content);
+      // Read the full lifecycle in chronological order so the progress timeline
+      // does not lose the early phases when an action has many install messages.
+      const response = await axiosInstance.get<GetActionLogResponse>(`/targets/${controllerId}/actions/${actionId}/status`, {
+        params: {
+          sort: 'id:ASC',
+          limit: 500,
+        },
+      });
       return response.data.content;
     } catch (error) {
-      console.error('Failed to fetch target actions', error);
+      console.error('Failed to fetch action status', error);
       throw error;
     }
   }

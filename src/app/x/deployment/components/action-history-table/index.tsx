@@ -10,11 +10,18 @@ import { TargetAction } from '@/entities/target-action';
 import XIcon from '@/app/components/icons/x-icon';
 import ThunderCloudIcon from '@/app/components/icons/thunder-cloud-icon';
 import CircleCheckMarkIcon from '@/app/components/icons/circle-check-mark-icon';
+import ChevronDownIcon from '@/app/components/icons/chevron-down-icon';
 import { Chip } from '@/app/components/chip';
 import { VisibleColumn } from '@/types/utils/visible-column';
 import { transformToColumnVisibility } from '@/utils/columns-visibility';
 import { EMPTY_DISPLAY_VALUE } from '@/utils/table-display';
 import { TargetActionsTableColumnKey } from '@/stores/target-action-table-store';
+import { formatActionStatusLabel } from '@/utils/action-progress';
+
+export type ActionStatusOverride = {
+  status?: string;
+  detailStatus?: string;
+};
 
 export type ActionHistoryTableProps = {
   isLoading?: boolean;
@@ -25,15 +32,12 @@ export type ActionHistoryTableProps = {
   onConfirmClick?: (targetAction: TargetAction) => void;
   onActionIdClick?: (targetAction: TargetAction) => void;
   onSelectionChange?: (targetActions: TargetAction[]) => void;
+  onToggleExpand?: (targetAction: TargetAction) => void;
+  renderExpandedContent?: (targetAction: TargetAction) => React.ReactNode;
+  expandedActionId?: number | string;
+  statusOverrides?: Record<string, ActionStatusOverride>;
   selectionResetKey?: string | number;
   visibleColumns: Partial<Record<TargetActionsTableColumnKey, VisibleColumn>>;
-};
-
-const formatActionStatus = (status?: string): string => {
-  if (!status) {
-    return '';
-  }
-  return status === 'wait_for_confirmation' ? 'awaiting confirmation' : status;
 };
 
 export default function ActionHistoryTable({
@@ -45,19 +49,49 @@ export default function ActionHistoryTable({
   isLoading,
   onActionIdClick,
   onSelectionChange,
+  onToggleExpand,
+  renderExpandedContent,
+  expandedActionId,
+  statusOverrides,
   selectionResetKey,
   visibleColumns,
 }: ActionHistoryTableProps) {
   const columnHelper = createColumnHelper<TargetAction>();
 
+  const getEffectiveStatus = (action: TargetAction): string => {
+    const override = statusOverrides?.[String(action.id)];
+    return override?.detailStatus ?? override?.status ?? action.detailStatus ?? action.status;
+  };
+
   const columns = useMemo(() => {
     return [
-      columnHelper.accessor((row) => row.detailStatus ?? row.status, {
+      columnHelper.display({
+        id: 'expand',
+        header: '',
+        size: 44,
+        cell: (info) => {
+          const isExpanded = expandedActionId !== undefined && String(expandedActionId) === String(info.row.original.id);
+          return (
+            <IconButton
+              height={'30px'}
+              width={'30px'}
+              title={isExpanded ? 'Collapse action details' : 'Expand action details'}
+              onClick={(event) => {
+                event.stopPropagation();
+                onToggleExpand?.(info.row.original);
+              }}
+            >
+              <ChevronDownIcon width={18} height={18} style={{ transform: isExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s ease' }} />
+            </IconButton>
+          );
+        },
+      }),
+      columnHelper.accessor((row) => getEffectiveStatus(row), {
         id: 'status',
         header: 'Status',
         cell: (info) => (
           <div className={styles.statusCell}>
-            <Chip value={formatActionStatus(info.getValue())} colorClassName={info.getValue()} />
+            <Chip value={formatActionStatusLabel(info.getValue())} colorClassName={info.getValue()} />
           </div>
         ),
       }),
@@ -108,7 +142,7 @@ export default function ActionHistoryTable({
         header: 'Actions',
         cell: (info) => (
           <div className={styles.actionButtons}>
-            {info.row.original.status === 'wait_for_confirmation' && (
+            {getEffectiveStatus(info.row.original) === 'wait_for_confirmation' && (
               <IconButton height={'30px'} width={'30px'} title='Confirm action' onClick={() => onConfirmClick?.(info.row.original)}>
                 <CircleCheckMarkIcon width={20} height={20} />
               </IconButton>
@@ -123,7 +157,8 @@ export default function ActionHistoryTable({
         ),
       }),
     ];
-  }, [columnHelper, onActionIdClick, onCancelClick, onForceClick, onConfirmClick]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [columnHelper, expandedActionId, onActionIdClick, onCancelClick, onForceClick, onConfirmClick, onToggleExpand, statusOverrides]);
 
   const columnVisibility = useMemo(() => {
     return transformToColumnVisibility(visibleColumns);
@@ -141,6 +176,8 @@ export default function ActionHistoryTable({
         selectionResetKey={selectionResetKey}
         onRowClick={(_, data) => onRowClick?.(data)}
         isLoading={isLoading}
+        isRowExpanded={(action) => expandedActionId !== undefined && String(expandedActionId) === String(action.id)}
+        renderExpandedRow={renderExpandedContent}
       />
     </>
   );

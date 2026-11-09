@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
-import ActionHistoryTable from '@/app/x/deployment/components/action-history-table';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import ActionHistoryTable, { ActionStatusOverride } from '@/app/x/deployment/components/action-history-table';
+import ActionProgressPanel from '@/app/x/deployment/components/action-progress-panel';
 import { useTargetActionsTableStore } from '@/stores/target-action-table-store';
 import { TargetAction } from '@/entities/target-action';
 import { Modal } from '@/app/components/modal';
@@ -29,6 +30,19 @@ export default function ActionHistoryTableContainer() {
   const { isOpen, open, close } = useModal();
 
   const [listFilters, setListFilters] = useState<ListFilterState>(EMPTY_LIST_FILTERS);
+  const [expandedActionId, setExpandedActionId] = useState<number | string | undefined>(undefined);
+  const [statusOverrides, setStatusOverrides] = useState<Record<string, ActionStatusOverride>>({});
+
+  const handleToggleExpand = (targetAction: TargetAction) => {
+    setExpandedActionId((current) => (current !== undefined && String(current) === String(targetAction.id) ? undefined : targetAction.id));
+  };
+
+  const handleStatusUpdate = useCallback((actionId: number | string, status: string) => {
+    setStatusOverrides((current) => ({
+      ...current,
+      [String(actionId)]: { status, detailStatus: status },
+    }));
+  }, []);
 
   const typeOptions = useMemo(() => {
     const values = targetActions.flatMap((action) => [
@@ -168,6 +182,11 @@ export default function ActionHistoryTableContainer() {
   };
 
   useEffect(() => {
+    setExpandedActionId(undefined);
+    setStatusOverrides({});
+  }, [selectedTargetId]);
+
+  useEffect(() => {
     if (!selectedTargetId) {
       console.warn('No target ID selected. Skipping action history fetch.');
       return;
@@ -210,6 +229,14 @@ export default function ActionHistoryTableContainer() {
           onConfirmClick={handleConfirmClick}
           onSelectionChange={setSelectedActions}
           selectionResetKey={selectionResetKey}
+          expandedActionId={expandedActionId}
+          onToggleExpand={handleToggleExpand}
+          statusOverrides={statusOverrides}
+          renderExpandedContent={
+            selectedTargetId
+              ? (targetAction) => <ActionProgressPanel action={targetAction} controllerId={selectedTargetId} onStatusUpdate={handleStatusUpdate} />
+              : undefined
+          }
         />
       </div>
       <Modal isOpen={isOpen} variant='unstyled' size='lg' onClose={close}>

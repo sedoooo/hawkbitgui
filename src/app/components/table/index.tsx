@@ -29,6 +29,8 @@ export type TableProps<T> = {
   sorting?: SortingState;
   onSortingChange?: (sorting: SortingState) => void;
   manualSorting?: boolean;
+  isRowExpanded?: (data: T, rowId: string) => boolean;
+  renderExpandedRow?: (data: T) => React.ReactNode;
 };
 
 export default function Table<T>({
@@ -48,6 +50,8 @@ export default function Table<T>({
   sorting: controlledSorting,
   onSortingChange,
   manualSorting = false,
+  isRowExpanded,
+  renderExpandedRow,
 }: TableProps<T>) {
   const uuid = useMemo(() => `table-${Math.random().toString(36).substr(2, 9)}`, []);
   const [selectedRows, setSelectedRows] = useState<Record<string, T>>({});
@@ -174,33 +178,40 @@ export default function Table<T>({
             {!isLoading ? (
               table.getRowModel().rows.map((row) => {
                 const isSelected = !!selectedRows[row.id];
+                const isExpanded = isRowExpanded?.(row.original, row.id) ?? false;
                 return (
-                  <DraggableDroppableRow
-                    className={styles.tr}
-                    key={row.id}
-                    id={`${uuid}-${row.id}`}
-                    dragData={{ ...selectedRows, [row.id]: row.original }}
-                    dropData={row.original}
-                    draggable={draggable}
-                    droppable={draggable}
-                    isSelected={isSelected}
-                    onClick={(event) => handleRowClick(row.id, row.original, event)}
-                  >
-                    {row.getVisibleCells().map((cell) => (
-                      <div
-                        className={styles.td}
-                        key={cell.id}
-                        data-testid={`table-cell-${cell.column.id}`}
-                        style={{
-                          width: cell.column.getSize(),
-                          minWidth: cell.column.columnDef.minSize,
-                          maxWidth: cell.column.columnDef.maxSize,
-                        }}
-                      >
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                  <React.Fragment key={row.id}>
+                    <DraggableDroppableRow
+                      className={styles.tr}
+                      id={`${uuid}-${row.id}`}
+                      dragData={{ ...selectedRows, [row.id]: row.original }}
+                      dropData={row.original}
+                      draggable={draggable}
+                      droppable={draggable}
+                      isSelected={isSelected}
+                      onClick={(event) => handleRowClick(row.id, row.original, event)}
+                    >
+                      {row.getVisibleCells().map((cell) => (
+                        <div
+                          className={styles.td}
+                          key={cell.id}
+                          data-testid={`table-cell-${cell.column.id}`}
+                          style={{
+                            width: cell.column.getSize(),
+                            minWidth: cell.column.columnDef.minSize,
+                            maxWidth: cell.column.columnDef.maxSize,
+                          }}
+                        >
+                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        </div>
+                      ))}
+                    </DraggableDroppableRow>
+                    {isExpanded && renderExpandedRow && (
+                      <div className={styles.expandedRow} data-testid={`table-expanded-row-${row.id}`}>
+                        {renderExpandedRow(row.original)}
                       </div>
-                    ))}
-                  </DraggableDroppableRow>
+                    )}
+                  </React.Fragment>
                 );
               })
             ) : (
