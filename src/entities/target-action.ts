@@ -23,5 +23,6 @@ export interface TargetAction {
   rollout: number;
   rolloutName: string;
   forceType: string;
+  distributionSetType?: string;
   _links: ActionLinks;
 }

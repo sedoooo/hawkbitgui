@@ -13,6 +13,7 @@ import CircleCheckMarkIcon from '@/app/components/icons/circle-check-mark-icon';
 import { Chip } from '@/app/components/chip';
 import { VisibleColumn } from '@/types/utils/visible-column';
 import { transformToColumnVisibility } from '@/utils/columns-visibility';
+import { EMPTY_DISPLAY_VALUE } from '@/utils/table-display';
 import { TargetActionsTableColumnKey } from '@/stores/target-action-table-store';
 
 export type ActionHistoryTableProps = {
@@ -69,6 +70,11 @@ export default function ActionHistoryTable({
       columnHelper.accessor('_links.distributionset.name', {
         header: 'Distribution Set',
         cell: (info) => info.getValue(),
+      }),
+      columnHelper.accessor('distributionSetType', {
+        header: 'Distribution Set Type',
+        size: 160,
+        cell: (info) => info.getValue() ?? EMPTY_DISPLAY_VALUE,
       }),
       columnHelper.accessor('createdAt', {
         header: 'Created Date',

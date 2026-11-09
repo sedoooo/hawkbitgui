@@ -11,14 +11,25 @@ import EditSoftwareModuleFormContainer from '../edit-software-module-form-contai
 import { useSoftwareModuleFiltersStore } from '@/stores/software-module-filters-store';
 import { useGetPaginatedSoftwareModules } from '../../hooks/use-get-paginated-software-modules';
 import { useTableSorting } from '@/app/hooks/use-table-sorting';
+import { useGetSoftwareModuleTypes } from '@/app/x/software-module-types/hooks/use-get-software-module-types';
+import ListFilterBar from '@/app/components/list-filter-bar';
+import { buildListFilterQuery, combineQueryParts, EMPTY_LIST_FILTERS, getDistinctTypeOptions, type ListFilterState } from '@/utils/list-filters';
 
 export default function SoftwareModuleTableContainer() {
   const { sorting, setSorting } = useTableSorting();
   const filters = useSoftwareModuleFiltersStore((state) => state.filters);
   const fiqlQueryParam = FilterFiql.parseFiltersToFeedItemQueryLanguage(Object.values(filters) ?? []);
-  const query = fiqlQueryParam !== '' ? fiqlQueryParam : undefined;
+  const [listFilters, setListFilters] = useState<ListFilterState>(EMPTY_LIST_FILTERS);
+  const listFilterQuery = buildListFilterQuery(listFilters, { typeField: 'type', dateField: 'createdAt' });
+  const query = combineQueryParts(fiqlQueryParam, listFilterQuery);
   const { data: softwareModulesData, refetch, isLoading } = useGetPaginatedSoftwareModules({ queryParams: { q: query }, sorting });
   const { softwareModules, totalSoftwareModules } = softwareModulesData ?? { softwareModules: [], totalSoftwareModules: 0 };
+  const { data: softwareModuleTypes } = useGetSoftwareModuleTypes();
+
+  const typeOptions = getDistinctTypeOptions(
+    (softwareModuleTypes ?? []).filter((type) => !type.deleted).map((type) => type.key),
+    (key) => (softwareModuleTypes ?? []).find((type) => type.key === key)?.name ?? key
+  );
 
   const visibleColumns = useSoftwareModulesStore((state) => state.visibleColumns);
 
@@ -28,6 +39,16 @@ export default function SoftwareModuleTableContainer() {
 
   const handleSortingChange = (newSorting: typeof sorting) => {
     setSorting(newSorting);
+    setPage(0);
+  };
+
+  const handleListFiltersChange = (nextFilters: ListFilterState) => {
+    setListFilters(nextFilters);
+    setPage(0);
+  };
+
+  const handleListFiltersReset = () => {
+    setListFilters({ ...EMPTY_LIST_FILTERS });
     setPage(0);
   };
 
@@ -74,23 +95,33 @@ export default function SoftwareModuleTableContainer() {
 
   return (
     <>
-      <SoftwareModuleTable
-        modules={softwareModules}
-        isLoading={isLoading}
-        visibleColumns={visibleColumns}
-        pagination={{
-          page,
-          size,
-          totalItems: totalSoftwareModules,
-        }}
-        onNameClick={handleNameClick}
-        onEditClick={handleEditSoftwareModule}
-        onDeleteClick={handleDeleteSoftwareModule}
-        onRowClick={handleRowClick}
-        onPageChange={setPage}
-        sorting={sorting}
-        onSortingChange={handleSortingChange}
-      />
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%' }}>
+        <ListFilterBar
+          filters={listFilters}
+          typeOptions={typeOptions}
+          typeLabel='Type'
+          onChange={handleListFiltersChange}
+          onReset={handleListFiltersReset}
+          testIdPrefix='software-modules-filter'
+        />
+        <SoftwareModuleTable
+          modules={softwareModules}
+          isLoading={isLoading}
+          visibleColumns={visibleColumns}
+          pagination={{
+            page,
+            size,
+            totalItems: totalSoftwareModules,
+          }}
+          onNameClick={handleNameClick}
+          onEditClick={handleEditSoftwareModule}
+          onDeleteClick={handleDeleteSoftwareModule}
+          onRowClick={handleRowClick}
+          onPageChange={setPage}
+          sorting={sorting}
+          onSortingChange={handleSortingChange}
+        />
+      </div>
       <Modal isOpen={isSoftwareModuleInfoModalOpen} variant='unstyled' size='lg' onClose={closeInfoModal}>
         <SoftwareModuleInfo />
       </Modal>

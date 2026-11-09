@@ -1,6 +1,6 @@
 import { create, type StoreApi } from 'zustand';
 import type { SortingState } from '@tanstack/react-table';
-import { Distribution } from '@/entities';
+import { Distribution, FilterFiql } from '@/entities';
 import { DistributionSetsService } from '@/services/distribution-sets-service';
 import { useDistributionsFiltersStore } from '@/stores/distributions-filters-store';
 import { DEFAULT_PAGE_SIZE } from '@/utils/pagination';
@@ -8,6 +8,7 @@ import { VisibleColumn } from '@/types/utils/visible-column';
 import { getColumnVisibilityStorageKey } from '@/utils/columns-visibility';
 import { DISTRIBUTION_SETS_SERVER_SORT } from '@/utils/table-sort-maps';
 import { computeSort, GLOBAL_SORT_MAX_ROWS, paginateRows, sortRowsClientSide } from '@/utils/global-sort';
+import { buildListFilterQuery, combineQueryParts, EMPTY_LIST_FILTERS, type ListFilterState } from '@/utils/list-filters';
 
 export type DistributionsTableColumnKey = keyof Distribution | 'actions';
 
@@ -33,6 +34,11 @@ export const DEFAULT_DISTRIBUTIONS_TABLE_VISIBLE_COLUMNS: Partial<Record<Distrib
     id: 'createdAt',
     label: 'Created Date',
     isSelected: false,
+  },
+  typeName: {
+    id: 'typeName',
+    label: 'Type',
+    isSelected: true,
   },
   createdBy: {
     id: 'createdBy',
@@ -66,9 +72,12 @@ interface DistributionsTableState {
   size: number;
   total: number;
   sorting: SortingState;
+  listFilters: ListFilterState;
   visibleColumns: Partial<Record<DistributionsTableColumnKey, VisibleColumn>>;
   setPage: (page: number) => void;
   setSorting: (sorting: SortingState) => void;
+  setListFilters: (filters: ListFilterState) => void;
+  resetListFilters: () => void;
   setTotal: (total: number) => void;
   setSelectedDistribution: (distribution: Distribution) => void;
   setFilteredDistributions: (filtered: Distribution[]) => void;
@@ -92,9 +101,12 @@ export const useDistributionsTableStore = create<DistributionsTableState>((set) 
   size: DEFAULT_PAGE_SIZE,
   total: 0,
   sorting: [],
+  listFilters: EMPTY_LIST_FILTERS,
   visibleColumns: DEFAULT_DISTRIBUTIONS_TABLE_VISIBLE_COLUMNS,
   setPage: (page) => set({ page }),
   setSorting: (sorting) => set({ sorting, page: 0 }),
+  setListFilters: (listFilters) => set({ listFilters, page: 0 }),
+  resetListFilters: () => set({ listFilters: EMPTY_LIST_FILTERS, page: 0 }),
   setTotal: (total) => set({ total }),
   setSelectedDistribution: (distribution) => set({ selectedDistribution: distribution }),
   setFilteredDistributions: (filtered) => set({ filteredDistributions: filtered }),
@@ -127,13 +139,16 @@ type DistributionsStoreSet = StoreApi<DistributionsTableState>['setState'];
 
 async function fetchDistributionsPage(set: DistributionsStoreSet) {
   const filters = useDistributionsFiltersStore.getState().filters;
-  const { page, size, sorting } = useDistributionsTableStore.getState();
+  const { page, size, sorting, listFilters } = useDistributionsTableStore.getState();
   const { serverSort, isClient, activeSort } = computeSort(sorting, DISTRIBUTION_SETS_SERVER_SORT, 'name:ASC');
+  const tagQuery = FilterFiql.parseFiltersToFeedItemQueryLanguage(Object.values(filters));
+  const listFilterQuery = buildListFilterQuery(listFilters, { typeField: 'type', dateField: 'createdAt' });
+  const query = combineQueryParts(tagQuery, listFilterQuery);
 
   if (isClient) {
     const { distributionSets, totalDistributionSets } = await DistributionSetsService.fetchDistributionSets(
-      { filters: Object.values(filters) },
-      { offset: 0, limit: GLOBAL_SORT_MAX_ROWS }
+      { filters: [] },
+      { query, offset: 0, limit: GLOBAL_SORT_MAX_ROWS }
     );
     if (totalDistributionSets > GLOBAL_SORT_MAX_ROWS) {
       console.warn(`Client-side distribution sort truncated to ${GLOBAL_SORT_MAX_ROWS} of ${totalDistributionSets} rows`);
@@ -145,8 +160,8 @@ async function fetchDistributionsPage(set: DistributionsStoreSet) {
   }
 
   const { distributionSets, totalDistributionSets } = await DistributionSetsService.fetchDistributionSets(
-    { filters: Object.values(filters) },
-    { offset: page * size, limit: size, sort: serverSort }
+    { filters: [] },
+    { query, offset: page * size, limit: size, sort: serverSort }
   );
   set({ distributions: distributionSets, filteredDistributions: distributionSets, total: totalDistributionSets });
 }

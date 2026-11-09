@@ -10,6 +10,9 @@ import { DistributionSetsService } from '@/services/distribution-sets-service';
 import { Modal } from '@/app/components/modal';
 import DistributionInfo from '@/app/x/deployment/components/distribution-info';
 import { useDistributionsPolling } from '@/app/hooks/use-distributions-polling';
+import ListFilterBar from '@/app/components/list-filter-bar';
+import { useGetDistributionSetTypes } from '@/app/x/distribution-set-types/hooks/use-get-distribution-set-types';
+import { EMPTY_LIST_FILTERS, getDistinctTypeOptions, type ListFilterState } from '@/utils/list-filters';
 
 export default function DistributionsTableContainer() {
   const filteredDistributions = useDistributionsTableStore((state) => state.filteredDistributions);
@@ -22,7 +25,15 @@ export default function DistributionsTableContainer() {
   const setPage = useDistributionsTableStore((state) => state.setPage);
   const sorting = useDistributionsTableStore((state) => state.sorting);
   const setSorting = useDistributionsTableStore((state) => state.setSorting);
+  const listFilters = useDistributionsTableStore((state) => state.listFilters);
+  const setListFilters = useDistributionsTableStore((state) => state.setListFilters);
   const distributionsTableStore = useDistributionsTableStore();
+  const { data: distributionSetTypes } = useGetDistributionSetTypes();
+
+  const typeOptions = getDistinctTypeOptions(
+    (distributionSetTypes ?? []).filter((type) => !type.deleted).map((type) => type.key),
+    (key) => (distributionSetTypes ?? []).find((type) => type.key === key)?.name ?? key
+  );
 
   const [isDistributionInfoModalOpen, setIsDistributionInfoModalOpen] = useState(false);
 
@@ -46,31 +57,51 @@ export default function DistributionsTableContainer() {
     fetchDistributions();
   };
 
+  const handleListFiltersChange = (nextFilters: ListFilterState) => {
+    setListFilters(nextFilters);
+    fetchDistributions();
+  };
+
+  const handleListFiltersReset = () => {
+    setListFilters({ ...EMPTY_LIST_FILTERS });
+    fetchDistributions();
+  };
+
   useDistributionsPolling();
 
   return (
     <>
-      <DistributionsTable
-        distributions={filteredDistributions.map((distribution) => ({
-          ...distribution,
-          status: 'Error',
-        }))}
-        visibleColumns={visibleColumns}
-        onNameClick={(distribution) => {
-          distributionsTableStore.setSelectedDistribution(distribution);
-          setIsDistributionInfoModalOpen(true);
-        }}
-        pagination={{
-          page,
-          size,
-          totalItems: total,
-        }}
-        onDeleteClick={handleDeleteClick}
-        isLoading={isLoading}
-        onPageChange={handlePageChange}
-        sorting={sorting}
-        onSortingChange={handleSortingChange}
-      />
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%' }}>
+        <ListFilterBar
+          filters={listFilters}
+          typeOptions={typeOptions}
+          typeLabel='Type'
+          onChange={handleListFiltersChange}
+          onReset={handleListFiltersReset}
+          testIdPrefix='deployment-distributions-filter'
+        />
+        <DistributionsTable
+          distributions={filteredDistributions.map((distribution) => ({
+            ...distribution,
+            status: 'Error',
+          }))}
+          visibleColumns={visibleColumns}
+          onNameClick={(distribution) => {
+            distributionsTableStore.setSelectedDistribution(distribution);
+            setIsDistributionInfoModalOpen(true);
+          }}
+          pagination={{
+            page,
+            size,
+            totalItems: total,
+          }}
+          onDeleteClick={handleDeleteClick}
+          isLoading={isLoading}
+          onPageChange={handlePageChange}
+          sorting={sorting}
+          onSortingChange={handleSortingChange}
+        />
+      </div>
       <Modal isOpen={isDistributionInfoModalOpen} variant='unstyled' size='lg' onClose={() => setIsDistributionInfoModalOpen(false)}>
         <DistributionInfo />
       </Modal>

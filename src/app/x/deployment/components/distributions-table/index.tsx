@@ -12,6 +12,7 @@ import BlockIcon from '@/app/components/icons/block-icon';
 import type { Pagination } from '@/types/utils/pagination';
 import { VisibleColumn } from '@/types/utils/visible-column';
 import { transformToColumnVisibility } from '@/utils/columns-visibility';
+import { resolveDistributionSetType } from '@/utils/table-display';
 import { DistributionsTableColumnKey } from '@/stores/distributions-table-store';
 
 export type DistributionsTableProps = {
@@ -64,6 +65,11 @@ export default function DistributionsTable({
       columnHelper.accessor('createdAt', {
         header: 'Created Date',
         cell: (info) => dayjs(info.getValue()).format('YYYY-MM-DD HH:mm:ss'),
+      }),
+      columnHelper.accessor('typeName', {
+        header: 'Type',
+        size: 160,
+        cell: (info) => resolveDistributionSetType(info.row.original),
       }),
       columnHelper.accessor('createdBy', {
         header: 'Created By',

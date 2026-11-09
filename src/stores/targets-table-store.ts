@@ -1,6 +1,6 @@
 import { create, type StoreApi } from 'zustand';
 import type { SortingState } from '@tanstack/react-table';
-import { Target } from '@/entities';
+import { FilterFiql, Target } from '@/entities';
 import { TargetsService } from '@/services/targets-service';
 import { useTargetsFiltersStore } from '@/stores/targets-filters-store';
 import { DEFAULT_PAGE_SIZE } from '@/utils/pagination';
@@ -8,6 +8,7 @@ import { VisibleColumn } from '@/types/utils/visible-column';
 import { getColumnVisibilityStorageKey } from '@/utils/columns-visibility';
 import { TARGETS_SERVER_SORT } from '@/utils/table-sort-maps';
 import { computeSort, GLOBAL_SORT_MAX_ROWS, paginateRows, sortRowsClientSide } from '@/utils/global-sort';
+import { buildListFilterQuery, combineQueryParts, EMPTY_LIST_FILTERS, type ListFilterState } from '@/utils/list-filters';
 
 export type TargetsTableColumnKey = keyof Target | 'actions';
 
@@ -66,9 +67,12 @@ interface TargetsTableState {
   size: number;
   total: number;
   sorting: SortingState;
+  listFilters: ListFilterState;
   visibleColumns: Partial<Record<TargetsTableColumnKey, VisibleColumn>>;
   setPage: (page: number) => void;
   setSorting: (sorting: SortingState) => void;
+  setListFilters: (filters: ListFilterState) => void;
+  resetListFilters: () => void;
   setTotal: (total: number) => void;
   setSelectedTarget: (target: Target) => void;
   setFilteredTargets: (filteredTargets: Target[]) => void;
@@ -92,9 +96,12 @@ export const useTargetsTableStore = create<TargetsTableState>((set) => ({
   size: DEFAULT_PAGE_SIZE,
   total: 0,
   sorting: [],
+  listFilters: EMPTY_LIST_FILTERS,
   visibleColumns: DEFAULT_TARGETS_TABLE_VISIBLE_COLUMNS,
   setPage: (page) => set({ page }),
   setSorting: (sorting) => set({ sorting, page: 0 }),
+  setListFilters: (listFilters) => set({ listFilters, page: 0 }),
+  resetListFilters: () => set({ listFilters: EMPTY_LIST_FILTERS, page: 0 }),
   setTotal: (total: number) => set({ total }),
   setSelectedTarget: (target) => set({ selectedTarget: target }),
   setFilteredTargets: (filteredTargets) => set({ filteredTargets }),
@@ -129,13 +136,16 @@ type TargetsStoreSet = StoreApi<TargetsTableState>['setState'];
 
 async function fetchTargetsPage(set: TargetsStoreSet) {
   const filters = useTargetsFiltersStore.getState().filters;
-  const { page, size, sorting } = useTargetsTableStore.getState();
+  const { page, size, sorting, listFilters } = useTargetsTableStore.getState();
   const { serverSort, isClient, activeSort } = computeSort(sorting, TARGETS_SERVER_SORT, 'name:ASC');
+  const filterQuery = FilterFiql.parseFiltersToFeedItemQueryLanguage(Object.values(filters));
+  const listFilterQuery = buildListFilterQuery(listFilters, { typeField: 'targetType.id', dateField: 'createdAt' });
+  const query = combineQueryParts(filterQuery, listFilterQuery);
 
   if (isClient) {
     const { targets, totalTargets } = await TargetsService.fetchTargets({
-      filters: Object.values(filters),
-      queryParams: { offset: 0, limit: GLOBAL_SORT_MAX_ROWS },
+      filters: [],
+      queryParams: { query, offset: 0, limit: GLOBAL_SORT_MAX_ROWS },
     });
     if (totalTargets > GLOBAL_SORT_MAX_ROWS) {
       console.warn(`Client-side target sort truncated to ${GLOBAL_SORT_MAX_ROWS} of ${totalTargets} rows`);
@@ -147,8 +157,8 @@ async function fetchTargetsPage(set: TargetsStoreSet) {
   }
 
   const { targets, totalTargets } = await TargetsService.fetchTargets({
-    filters: Object.values(filters),
-    queryParams: { offset: page * size, limit: size, sort: serverSort },
+    filters: [],
+    queryParams: { query, offset: page * size, limit: size, sort: serverSort },
   });
   set({ targets, filteredTargets: targets, total: totalTargets });
 }

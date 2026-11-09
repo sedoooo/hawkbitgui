@@ -159,7 +159,16 @@ export class TargetsService {
 
   static async fetchActions(controllerId: string): Promise<GetActionsOutput> {
     try {
-      const response = await axiosInstance.get<GetActionsResponse>(`/targets/${controllerId}/actions?representation=full`);
+      // The target-scoped action feed omits the distribution set link, so use the
+      // global action feed with a target filter to resolve the distribution set.
+      const response = await axiosInstance.get<GetActionsResponse>(`/actions`, {
+        params: {
+          representation: 'full',
+          q: `target.controllerId=="${controllerId.replace(/"/g, '\\"')}"`,
+          sort: 'id:DESC',
+          limit: 200,
+        },
+      });
       return response.data.content;
     } catch (error) {
       console.error('Failed to fetch target actions', error);

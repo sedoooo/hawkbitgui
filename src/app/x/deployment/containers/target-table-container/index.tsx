@@ -3,7 +3,7 @@
 import TargetTable from '../../components/target-table';
 import { useTargetsTableStore } from '@/stores/targets-table-store';
 import { Target } from '@/entities';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { TargetsService } from '@/services/targets-service';
 import TargetInfo from '@/app/components/target-info-modal';
 import { Modal } from '@/app/components/modal';
@@ -11,6 +11,9 @@ import ConfirmDeleteModal from '@/app/components/confirm-delete-modal';
 import { useConfirmDialog, useTargetsPolling } from '@/app/hooks';
 import EditTargetFormContainer from '../edit-target-form-container';
 import { useTargetActionsTableStore } from '@/stores/target-action-table-store';
+import { useTargetTypesStore } from '@/stores/targets-types-store';
+import ListFilterBar from '@/app/components/list-filter-bar';
+import { EMPTY_LIST_FILTERS, type ListFilterOption, type ListFilterState } from '@/utils/list-filters';
 
 export default function TargetTableContainer() {
   const filteredTargets = useTargetsTableStore((state) => state.filteredTargets);
@@ -25,6 +28,20 @@ export default function TargetTableContainer() {
   const setSorting = useTargetsTableStore((state) => state.setSorting);
   const targetsTableStore = useTargetsTableStore();
   const setTargetActionTargetId = useTargetActionsTableStore((state) => state.setSelectedTargetId);
+  const listFilters = useTargetsTableStore((state) => state.listFilters);
+  const setListFilters = useTargetsTableStore((state) => state.setListFilters);
+  const allTargetTypes = useTargetTypesStore((state) => state.allTypes);
+  const fetchAllTargetTypes = useTargetTypesStore((state) => state.fetchAllTypes);
+
+  useEffect(() => {
+    if (allTargetTypes.length === 0) {
+      void fetchAllTargetTypes();
+    }
+  }, [allTargetTypes.length, fetchAllTargetTypes]);
+
+  const typeOptions: ListFilterOption[] = allTargetTypes
+    .map((type) => ({ value: String(type.id), label: type.name }))
+    .sort((a, b) => a.label.localeCompare(b.label, 'en', { numeric: true, sensitivity: 'base' }));
 
   const [isTargetInfoModalOpen, setIsTargetInfoModalOpen] = useState(false);
   const [isEditTargetModalOpen, setIsEditTargetModalOpen] = useState(false);
@@ -58,33 +75,53 @@ export default function TargetTableContainer() {
     fetchTargets();
   };
 
+  const handleListFiltersChange = (nextFilters: ListFilterState) => {
+    setListFilters(nextFilters);
+    fetchTargets();
+  };
+
+  const handleListFiltersReset = () => {
+    setListFilters({ ...EMPTY_LIST_FILTERS });
+    fetchTargets();
+  };
+
   useTargetsPolling();
 
   return (
     <>
-      <TargetTable
-        targets={filteredTargets.map((target) => ({
-          ...target,
-          status: 'Error',
-        }))}
-        visibleColumns={visibleColumns}
-        onTargetNameClick={(target) => {
-          targetsTableStore.setSelectedTarget(target);
-          setIsTargetInfoModalOpen(true);
-        }}
-        pagination={{
-          page,
-          size,
-          totalItems: total,
-        }}
-        onDeleteClick={handleDeleteClick}
-        onEditClick={handleEditClick}
-        onRowClick={handleOnRowClick}
-        isLoading={isLoading}
-        onPageChange={handlePageChange}
-        sorting={sorting}
-        onSortingChange={handleSortingChange}
-      />
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%' }}>
+        <ListFilterBar
+          filters={listFilters}
+          typeOptions={typeOptions}
+          typeLabel='Target type'
+          onChange={handleListFiltersChange}
+          onReset={handleListFiltersReset}
+          testIdPrefix='targets-filter'
+        />
+        <TargetTable
+          targets={filteredTargets.map((target) => ({
+            ...target,
+            status: 'Error',
+          }))}
+          visibleColumns={visibleColumns}
+          onTargetNameClick={(target) => {
+            targetsTableStore.setSelectedTarget(target);
+            setIsTargetInfoModalOpen(true);
+          }}
+          pagination={{
+            page,
+            size,
+            totalItems: total,
+          }}
+          onDeleteClick={handleDeleteClick}
+          onEditClick={handleEditClick}
+          onRowClick={handleOnRowClick}
+          isLoading={isLoading}
+          onPageChange={handlePageChange}
+          sorting={sorting}
+          onSortingChange={handleSortingChange}
+        />
+      </div>
       <Modal isOpen={isTargetInfoModalOpen} variant='unstyled' size='lg' onClose={() => setIsTargetInfoModalOpen(false)}>
         <TargetInfo />
       </Modal>

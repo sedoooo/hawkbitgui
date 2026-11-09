@@ -1,0 +1,35 @@
+@use 'src/app/styles/variables' as *;
+
+.bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid $border-disabled-color;
+  border-radius: 12px;
+  background-color: $secondary-color;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 160px;
+
+  input {
+    color-scheme: light;
+  }
+}
+
+.label {
+  font-size: 12px;
+  font-weight: 600;
+  color: $light-primary-text-color;
+  text-align: left;
+}
+
+.reset {
+  margin-left: auto;
+  padding-bottom: 1px;
+}

@@ -7,6 +7,7 @@ import type { SortingState } from '@tanstack/react-table';
 import { UseQueryOptions, useQuery } from '@tanstack/react-query';
 import { DISTRIBUTION_SETS_SERVER_SORT } from '@/utils/table-sort-maps';
 import { computeSort, GLOBAL_SORT_MAX_ROWS, paginateRows, sortRowsClientSide } from '@/utils/global-sort';
+import { combineQueryParts } from '@/utils/list-filters';
 
 type UseGetPaginatedDistributionSetsOutput = {
   distributionSets: Distribution[];
@@ -15,15 +16,16 @@ type UseGetPaginatedDistributionSetsOutput = {
 
 type UseGetPaginatedDistributionSetsParams = {
   sorting?: SortingState;
+  extraQuery?: string;
   queryOptions?: Omit<UseQueryOptions<UseGetPaginatedDistributionSetsOutput, ApiError, UseGetPaginatedDistributionSetsOutput>, 'queryKey' | 'queryFn'>;
 };
 
 export const useGetPaginatedDistributionSets = (params?: UseGetPaginatedDistributionSetsParams) => {
-  const { sorting = [], queryOptions } = params ?? {};
+  const { sorting = [], extraQuery, queryOptions } = params ?? {};
 
   const filters = useDistributionSetFiltersStore((state) => state.filters);
   const fiqlQueryParam = FilterFiql.parseFiltersToFeedItemQueryLanguage(Object.values(filters) ?? []);
-  const query = fiqlQueryParam !== '' ? fiqlQueryParam : undefined;
+  const query = combineQueryParts(fiqlQueryParam, extraQuery);
 
   const page = useDistributionsSetsTableStore((state) => state.page);
   const size = useDistributionsSetsTableStore((state) => state.size);

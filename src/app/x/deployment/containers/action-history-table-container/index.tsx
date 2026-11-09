@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import ActionHistoryTable from '@/app/x/deployment/components/action-history-table';
 import { useTargetActionsTableStore } from '@/stores/target-action-table-store';
 import { TargetAction } from '@/entities/target-action';
@@ -11,6 +11,8 @@ import ConfirmationModal from '@/app/components/confirmation-modal';
 import { useConfirmDialog } from '@/app/hooks/use-confirm-dialog';
 import { TargetsService } from '@/services/targets-service';
 import { handleErrorWithToast } from '@/utils/handle-error-with-toast';
+import ListFilterBar from '@/app/components/list-filter-bar';
+import { EMPTY_LIST_FILTERS, filterRowsByListFilters, getDistinctTypeOptions, type ListFilterState } from '@/utils/list-filters';
 
 export default function ActionHistoryTableContainer() {
   const targetActions = useTargetActionsTableStore((state) => state.actions);
@@ -22,6 +24,34 @@ export default function ActionHistoryTableContainer() {
   const setSelectedAction = useTargetActionsTableStore((state) => state.setSelectedAction);
 
   const { isOpen, open, close } = useModal();
+
+  const [listFilters, setListFilters] = useState<ListFilterState>(EMPTY_LIST_FILTERS);
+
+  const typeOptions = useMemo(() => {
+    const values = targetActions.flatMap((action) => [
+      action.type ? `action:${action.type}` : undefined,
+      action.distributionSetType ? `ds:${action.distributionSetType}` : undefined,
+    ]);
+
+    return getDistinctTypeOptions(values, (value) => {
+      if (value.startsWith('action:')) {
+        return `Action: ${value.slice('action:'.length)}`;
+      }
+      if (value.startsWith('ds:')) {
+        return `Distribution set: ${value.slice('ds:'.length)}`;
+      }
+      return value;
+    });
+  }, [targetActions]);
+
+  const filteredTargetActions = useMemo(
+    () =>
+      filterRowsByListFilters(targetActions, listFilters, {
+        getTypes: (action) => [action.type ? `action:${action.type}` : undefined, action.distributionSetType ? `ds:${action.distributionSetType}` : undefined],
+        getTimestamp: (action) => action.createdAt,
+      }),
+    [targetActions, listFilters]
+  );
 
   const [isCancelling, setIsCancelling] = useState(false);
   const confirmCancelDialog = useConfirmDialog<TargetAction>();
@@ -96,15 +126,25 @@ export default function ActionHistoryTableContainer() {
 
   return (
     <>
-      <ActionHistoryTable
-        targetActions={targetActions}
-        visibleColumns={visibleColumns}
-        isLoading={isLoading}
-        onActionIdClick={handleActionIdClick}
-        onCancelClick={handleCancelClick}
-        onForceClick={handleForceClick}
-        onConfirmClick={handleConfirmClick}
-      />
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%' }}>
+        <ListFilterBar
+          filters={listFilters}
+          typeOptions={typeOptions}
+          typeLabel='Type'
+          onChange={setListFilters}
+          onReset={() => setListFilters({ ...EMPTY_LIST_FILTERS })}
+          testIdPrefix='action-history-filter'
+        />
+        <ActionHistoryTable
+          targetActions={filteredTargetActions}
+          visibleColumns={visibleColumns}
+          isLoading={isLoading}
+          onActionIdClick={handleActionIdClick}
+          onCancelClick={handleCancelClick}
+          onForceClick={handleForceClick}
+          onConfirmClick={handleConfirmClick}
+        />
+      </div>
       <Modal isOpen={isOpen} variant='unstyled' size='lg' onClose={close}>
         <ActionInfo />
       </Modal>
