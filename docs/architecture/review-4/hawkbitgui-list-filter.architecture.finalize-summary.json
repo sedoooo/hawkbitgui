@@ -1,0 +1,171 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "architecture",
+  "quality": "showcase",
+  "specification": {
+    "path": "/opt/hawkbitgui/src/docs/architecture/hawkbitgui-list-filter.architecture.json",
+    "sha256": "fd48cb6e0723bc48b023f7fe301be5cbd405ab66e93f662d220837bb1fb661dd",
+    "bytes": 10687
+  },
+  "artifact": {
+    "path": "/opt/hawkbitgui/src/docs/architecture/hawkbitgui-list-filter.architecture.html",
+    "sha256": "b81c1e56706d37c9b84ec7459788af49b30eecb76e2e5959cd2c62becd290df2",
+    "bytes": 866098
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "pass"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "/opt/hawkbitgui/src/docs/architecture/review-4/hawkbitgui-list-filter.architecture.finalize.json",
+    "summaryReceipt": "/opt/hawkbitgui/src/docs/architecture/review-4/hawkbitgui-list-filter.architecture.finalize-summary.json",
+    "browserCheckReceipt": "/opt/hawkbitgui/src/docs/architecture/review-4/hawkbitgui-list-filter.architecture.browser-check.json"
+  },
+  "update": {
+    "status": "current",
+    "installedVersion": "3.2.0",
+    "availableVersion": "3.2.0",
+    "releaseNotes": null,
+    "checkedAt": "2026-11-10T19:31:57.124Z",
+    "source": "network",
+    "noticeRequired": false,
+    "noticeText": null
+  },
+  "visualReview": "not-requested",
+  "durationMs": 3648,
+  "browserCheck": {
+    "requested": true,
+    "ran": true
+  },
+  "visualReviewRecommendation": {
+    "action": "inspect-route-readability",
+    "signals": {
+      "resolvedCrossovers": 2,
+      "routesOverSuggestedBends": 3,
+      "routesOverSuggestedStretch": 3
+    },
+    "reason": "Automated gates passed, but crossings or detours still need perceptual review before claiming visual quality.",
+    "affectedRoutes": {
+      "crossings": [
+        {
+          "left": {
+            "id": "route-distributions",
+            "from": "nextui",
+            "to": "disttab",
+            "label": "route",
+            "collectionIndex": 2,
+            "artifactIndex": 3
+          },
+          "right": {
+            "id": "route-deployment",
+            "from": "nextui",
+            "to": "deploytab",
+            "label": "route",
+            "collectionIndex": 3,
+            "artifactIndex": 4
+          },
+          "point": [
+            211.5,
+            334
+          ],
+          "sharedNode": "nextui"
+        },
+        {
+          "left": {
+            "id": "distributions-renders-filter",
+            "from": "disttab",
+            "to": "filterbar",
+            "label": "renders",
+            "collectionIndex": 5,
+            "artifactIndex": 6
+          },
+          "right": {
+            "id": "deployment-renders-filter",
+            "from": "deploytab",
+            "to": "filterbar",
+            "label": "renders",
+            "collectionIndex": 6,
+            "artifactIndex": 7
+          },
+          "point": [
+            483.5,
+            336
+          ],
+          "sharedNode": "filterbar"
+        }
+      ],
+      "detours": [
+        {
+          "relationship": {
+            "id": "operator-opens-ui",
+            "from": "operator",
+            "to": "nextui",
+            "label": "opens",
+            "collectionIndex": 0,
+            "artifactIndex": 1
+          },
+          "bends": 2,
+          "stretch": 1.427
+        },
+        {
+          "relationship": {
+            "id": "rest-request",
+            "from": "services",
+            "to": "hawkbit",
+            "label": "REST /rest/v1",
+            "collectionIndex": 10,
+            "artifactIndex": 11
+          },
+          "bends": 3,
+          "stretch": 1.419
+        },
+        {
+          "relationship": {
+            "id": "expand-artifacts",
+            "from": "uploadtab",
+            "to": "artpanel",
+            "label": "expands row",
+            "collectionIndex": 11,
+            "artifactIndex": 12
+          },
+          "bends": 3,
+          "stretch": 1.404
+        },
+        {
+          "relationship": {
+            "id": "stream-download",
+            "from": "artpanel",
+            "to": "downloadroute",
+            "label": "download link",
+            "collectionIndex": 13,
+            "artifactIndex": 14
+          },
+          "bends": 3,
+          "stretch": 1.343
+        }
+      ],
+      "truncated": false
+    },
+    "hints": [
+      "nextui has 3 relationships facing its right side, which fits 2 ports: make that side at least 60px, or move some of those neighbours so they face another side of nextui.",
+      "nextui → disttab and nextui → deploytab cross next to nextui: move node disttab or deploytab so the two reach nextui from different sides (for example one level with it, one directly above or below it).",
+      "disttab → filterbar and deploytab → filterbar cross next to filterbar: move node disttab or deploytab so the two reach filterbar from different sides (for example one level with it, one directly above or below it).",
+      "operator → nextui needs 2 bends: move node operator or nextui so they share a row or column with matching centers, or sit diagonally with a clear corner.",
+      "services → hawkbit needs 3 bends: move node services or hawkbit so they share a row or column with matching centers, or sit diagonally with a clear corner.",
+      "uploadtab → artpanel needs 3 bends: move node uploadtab or artpanel so they share a row or column with matching centers, or sit diagonally with a clear corner.",
+      "artpanel → downloadroute needs 3 bends: move node artpanel or downloadroute so they share a row or column with matching centers, or sit diagonally with a clear corner."
+    ],
+    "repair": "Trace these relationships at the desktop viewport. For Architecture, use references/architecture-layout-repair.md: reflow a blocked main path or tangled connected scene, and repair an isolated defect locally only when the surrounding composition is accepted. Preserve all semantic content and user-fixed geometry. Rerun finalize once after the edit."
+  }
+}
