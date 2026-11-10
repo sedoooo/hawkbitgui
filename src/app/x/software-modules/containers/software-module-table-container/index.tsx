@@ -56,13 +56,24 @@ export default function SoftwareModuleTableContainer() {
   const selectedSoftwareModule = useSoftwareModulesStore((state) => state.selectedSoftwareModule);
   const [isSoftwareModuleInfoModalOpen, setIsSoftwareModuleInfoModalOpen] = useState(false);
   const [isEditSoftwareModuleFormOpen, setIsEditSoftwareModuleFormOpen] = useState(false);
+  const [expandedSoftwareModuleId, setExpandedSoftwareModuleId] = useState<number | undefined>(undefined);
 
   const { deleteSoftwareModule } = useDeleteSoftwareModule();
 
   const confirmDialog = useConfirmDialog<SoftwareModule>();
 
+  const toggleExpandedSoftwareModule = (softwareModule: SoftwareModule) => {
+    setExpandedSoftwareModuleId((current) => (current === softwareModule.id ? undefined : softwareModule.id));
+  };
+
   const handleRowClick = (softwareModule: SoftwareModule) => {
     setSelectedSoftwareModule(softwareModule);
+    toggleExpandedSoftwareModule(softwareModule);
+  };
+
+  const handlePageChange = (nextPage: number) => {
+    setExpandedSoftwareModuleId(undefined);
+    setPage(nextPage);
   };
 
   const handleNameClick = (softwareModule: SoftwareModule) => {
@@ -117,9 +128,11 @@ export default function SoftwareModuleTableContainer() {
           onEditClick={handleEditSoftwareModule}
           onDeleteClick={handleDeleteSoftwareModule}
           onRowClick={handleRowClick}
-          onPageChange={setPage}
+          onPageChange={handlePageChange}
           sorting={sorting}
           onSortingChange={handleSortingChange}
+          expandedSoftwareModuleId={expandedSoftwareModuleId}
+          onToggleExpanded={toggleExpandedSoftwareModule}
         />
       </div>
       <Modal isOpen={isSoftwareModuleInfoModalOpen} variant='unstyled' size='lg' onClose={closeInfoModal}>

@@ -14,11 +14,6 @@ export interface GetArtifactsInput {
 
 export type GetArtifactsResponse = SoftwareModuleArtifact[];
 
-export interface DeleteArtifactInput {
-  softwareModuleId: number;
-  artifactId: number;
-}
-
 export interface DownloadArtifactInput {
   softwareModuleId: number;
   artifactId: number;

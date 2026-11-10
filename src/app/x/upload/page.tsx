@@ -5,7 +5,6 @@ import { PageWrapper } from '@/app/components/page-wrapper';
 import SoftwareModulesCard from '../software-modules/components/software-module-card';
 import CardsContainerGrid from '@/app/components/cards-container-grid';
 import UploadArtifactCardContainer from './containers/upload-artifact-card-container';
-import ArtifactsCardContainer from './containers/artifacts-card-container';
 import { useSoftwareModulesStore } from '@/stores/software-modules-store';
 import { ExpandableCardProvider } from '@/app/components/card/expandable-card-context';
 
@@ -27,11 +26,6 @@ export default function UploadPage() {
           <CardsContainerGrid distributionInPercentages={[70, 30]}>
             <SoftwareModulesCard />
             <UploadArtifactCardContainer />
-          </CardsContainerGrid>
-          <CardsContainerGrid distributionInPercentages={[100]}>
-            <div style={{ width: '100%', overflow: 'auto' }}>
-              <ArtifactsCardContainer />
-            </div>
           </CardsContainerGrid>
         </div>
       </ExpandableCardProvider>

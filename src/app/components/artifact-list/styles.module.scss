@@ -1,0 +1,74 @@
+@use 'src/app/styles/variables' as *;
+
+.list {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  border: 1px solid $border-disabled-color;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.header,
+.row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 170px minmax(0, 1.4fr) 80px;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+}
+
+.header {
+  background: $secondary-color;
+  font-size: 12px;
+  font-weight: 700;
+  color: $light-primary-text-color;
+}
+
+.row {
+  border-top: 1px solid $border-disabled-color;
+  font-size: 14px;
+}
+
+.filename {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: $primary-text-color;
+}
+
+.size {
+  color: $light-primary-text-color;
+  white-space: nowrap;
+}
+
+.hashes {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.hashLine,
+.hashLineMuted {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11px;
+}
+
+.hashLine {
+  color: $primary-text-color;
+}
+
+.hashLineMuted {
+  color: $light-primary-text-color;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}

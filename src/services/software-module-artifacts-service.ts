@@ -2,7 +2,6 @@ import axiosInstance from '@/lib/axios';
 import { md5 } from 'js-md5';
 import { SHA1, SHA256 } from 'crypto-js';
 import {
-  DeleteArtifactInput,
   DownloadArtifactInput,
   GetArtifactsInput,
   GetArtifactsResponse,
@@ -66,10 +65,6 @@ export class SoftwareModuleArtifactsService {
   static async getArtifacts({ softwareModuleId }: GetArtifactsInput): Promise<GetArtifactsResponse> {
     const response = await axiosInstance.get<GetArtifactsResponse>(`/softwaremodules/${softwareModuleId}/artifacts`);
     return response.data;
-  }
-
-  static async deleteArtifact({ softwareModuleId, artifactId }: DeleteArtifactInput): Promise<void> {
-    await axiosInstance.delete(`/softwaremodules/${softwareModuleId}/artifacts/${artifactId}`);
   }
 
   static async downloadArtifact({ softwareModuleId, artifactId }: DownloadArtifactInput): Promise<Blob> {
